@@ -17,6 +17,7 @@ const store = {
 const LS_SESS = 'moti_sessions_v1';   // 历史场次
 const LS_CHAT = 'moti_chats_v1';      // 每题的 AI 对话
 const LS_CUR  = 'moti_current_v1';    // 进行中的练习
+const LS_OWNER = 'moti_owner_v1';     // 本地缓存属于哪个账号（换账号要清掉，避免串号）
 let sessions = [], chats = {}, cur = null;
 
 function load(){
@@ -91,7 +92,7 @@ const state = {idx:0, sel:new Set(), sources:new Set(['A','B','C','D','EXTRA']),
 /* 选项乱序工具 */
 
 /* ---------- 懒加载脚本（同一文件只请求一次） ---------- */
-const JS_VER = '12';       // 改了 js 或题库数据就 bump，避免浏览器用旧缓存
+const JS_VER = '13';       // 改了 js 或题库数据就 bump，避免浏览器用旧缓存
 function loadScript(src){
   if(src.indexOf('?') < 0) src += '?v=' + JS_VER;
   window.__loaded = window.__loaded || {};

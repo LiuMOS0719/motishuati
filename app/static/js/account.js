@@ -202,6 +202,18 @@ async function syncFromServer(){
 async function enterApp(username){
   $('#whoami').textContent = username;
   me.username = username;
+  /* 同一个浏览器换账号：本地缓存是上一个账号的，必须丢掉。
+     否则 syncFromServer() 会把它当成「本机历史」推到新账号，新账号就从旧数据开始了。 */
+  const prevOwner = localStorage.getItem(LS_OWNER) || '';
+  if(prevOwner && prevOwner !== username){
+    sessions = []; chats = {}; cur = null;
+    localStorage.setItem(LS_SESS, '[]');
+    localStorage.setItem(LS_CHAT, '{}');
+    localStorage.removeItem(LS_CUR);
+    try{ if(typeof fbCache !== 'undefined') fbCache = null; }catch(e){}
+    try{ if(typeof myStats !== 'undefined') myStats = null; }catch(e){}
+  }
+  localStorage.setItem(LS_OWNER, username);
   // 这三个请求互不依赖，并行发出（原来串行要 3 个网络往返）
   await Promise.all([
     loadIndex(),
