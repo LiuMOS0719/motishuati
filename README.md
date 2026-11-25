@@ -260,25 +260,28 @@ store.bind('stats', ()=>{ renderUserCard(); renderRank(); updateQuotaUI(); })
 
 ## 前端文件结构与懒加载
 
+> **改前端一定要同时 bump 版本号**：`index.html` 里的 `js/*.js?v=` 和 `css/app.css?v=` 都要跟着加，`util.js` 里的 `JS_VER` 也要改。否则浏览器会继续用缓存里的旧文件——2026-11-25 就踩过一次：新增弹窗的 CSS 没 bump，弹窗内容直接排在页面末尾。
+
 单文件已拆开（原来 index.html 1838 行 / 87KB）：
 
 ```
 static/
-  index.html      243 行   骨架 + <link>/<script> 引用
-  css/app.css     265 行   全部样式
-  js/util.js       88 行   存储、$、esc、showPage、loadScript 等基础件
-  js/quizcore.js  108 行   纯逻辑：选项乱序、字母重映射、来源/章节计算
-  js/account.js   219 行   用户卡、排名（本地缓存）、DeepSeek 余额、管理弹窗、启动流程
-  js/home.js      412 行   主页：来源多选、章节、历史、反馈、开练/续做
+  index.html      283 行   骨架 + <link>/<script> 引用
+  css/app.css     275 行   全部样式
+  js/util.js      114 行   存储、$、esc、showPage、loadScript 等基础件
+  js/quizcore.js  109 行   纯逻辑：选项乱序、字母重映射、来源/章节计算
+  js/notes.js     148 行   问题记录本（管理员，页头按钮 + 弹窗）
+  js/account.js   241 行   用户卡、排名（本地缓存）、DeepSeek 余额、管理弹窗、启动流程
+  js/home.js      501 行   主页：来源多选、章节、历史、反馈、开练/续做
   js/auth.js       60 行   登录注册 + boot
   ── 以下按需懒加载（首次进入对应页面才下载）──
-  js/quiz.js      134 行   答题页：题卡、判题、解析
-  js/ai.js        183 行   AI 抽屉、markdown、反馈弹窗
-  js/result.js    147 行   结果页、错题明细、整体评价
+  js/quiz.js      135 行   答题页：题卡、判题、解析
+  js/ai.js        209 行   AI 抽屉、markdown、反馈弹窗
+  js/result.js    139 行   结果页、错题明细、整体评价
 ```
 
-- 首屏只加载前 5 个（util / quizcore / account / home / auth）+ css，其余用 `loadScript()` 动态注入，同一文件只请求一次
-- 用 `defer` 保证执行顺序；JS/CSS 带 `?v=1` 查询串 + `max-age=3600` 长缓存（**改了 js/css 记得把版本号 +1**）
+- 首屏只加载前 6 个（util / quizcore / notes / account / home / auth）+ css，其余用 `loadScript()` 动态注入，同一文件只请求一次
+- 用 `defer` 保证执行顺序；JS/CSS 带 `?v=11` 查询串 + `max-age=3600` 长缓存（**改了 js/css 记得把版本号 +1，`JS_VER` 一起改**）
 - 骨架 HTML 只有 `max-age=20, stale-while-revalidate=120`：20 秒内二次打开完全不发请求
 
 ## 性能数据（公网实测）
