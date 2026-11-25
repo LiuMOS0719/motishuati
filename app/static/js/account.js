@@ -73,6 +73,8 @@ async function loadUserPanels(){
     }
   }catch(e){}
   $('#adminBtn').style.display = me.is_admin ? 'inline-block' : 'none';
+  /* 「⚠ 题目反馈」所有登录用户都可见：管理员看全部，普通用户只看自己提交的 */
+  $('#fbHomeBtn').style.display = 'inline-block';
   /* 「📝 记录」只在管理员可见，并在进站时挂上待处理数量 */
   document.querySelectorAll('.noteBtn').forEach(b=>{
     b.style.display = me.is_admin ? 'inline-block' : 'none';

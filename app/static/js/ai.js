@@ -179,7 +179,8 @@ $('#fbSubmit').onclick = async ()=>{
   if(!fbQid) return;
   const btn = $('#fbSubmit'); btn.disabled = true; btn.textContent = '提交中…';
   try{
-    const r = await fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},
+    const r = await fetch('/api/feedback',{method:'POST',
+      headers:{'Content-Type':'application/json','X-Auth-Token':authToken},
       body:JSON.stringify({qid:fbQid, kind:$('#fbKind').value, note:$('#fbNote').value})}).then(x=>x.json());
     if(r.ok){
       $('#fbModal').classList.remove('open');

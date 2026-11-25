@@ -54,7 +54,9 @@ CREATE TABLE IF NOT EXISTS feedback(
   kind TEXT,
   note TEXT,
   created_at TEXT,
-  status TEXT DEFAULT 'open'
+  status TEXT DEFAULT 'open',
+  user_id INTEGER DEFAULT 0,      -- 提交人；0 = 加账号前的旧数据
+  username TEXT
 );
 CREATE TABLE IF NOT EXISTS admin_notes(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,6 +114,8 @@ CREATE TABLE IF NOT EXISTS ask_usage(  user_id INTEGER NOT NULL,
 MIGRATIONS = [
     ('users', 'is_admin', 'INTEGER DEFAULT 0'),
     ('users', 'quota', 'INTEGER DEFAULT 0'),   # 新账号默认没有 DeepSeek 额度，由管理员按需发放
+    ('feedback', 'user_id', 'INTEGER DEFAULT 0'),
+    ('feedback', 'username', 'TEXT'),
 ]
 
 

@@ -8,7 +8,7 @@
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="apple-touch-icon" href="/icon-180.png">
-<link rel="stylesheet" href="/css/app.css?v=11">
+<link rel="stylesheet" href="/css/app.css?v=12">
 </head>
 <body>
 
@@ -37,7 +37,7 @@
     <span id="bankPick" style="display:flex;align-items:center"></span>
     <span class="hint" id="dsBalance" style="display:none;align-items:center;gap:4px;font-size:12px;margin-left:8px"></span>
     <div class="sp"></div>
-    <button class="iconbtn" id="fbHomeBtn" title="查看你反馈过的题目问题">⚠ 题目反馈<span class="badge" id="fbBadge" style="display:none">0</span></button>
+    <button class="iconbtn" id="fbHomeBtn" style="display:none" title="查看你反馈过的题目问题">⚠ 题目反馈<span class="badge" id="fbBadge" style="display:none">0</span></button>
     <span class="hint" id="homeStat"></span>
     <span class="hint" id="whoami" style="color:var(--acc)"></span>
     <button class="iconbtn noteBtn" style="display:none" title="记录使用中发现的问题">📝 记录<span class="badge" id="noteBadge" style="display:none">0</span></button>
@@ -229,8 +229,8 @@
 
 <div id="fbListModal">
   <div class="mbox">
-    <h3>题目反馈 <span class="hint" id="fbCount"></span></h3>
-    <div class="hint">你反馈过的问题都会留在这里，我可以按它逐条修改。</div>
+    <h3><span id="fbTitle">题目反馈</span> <span class="hint" id="fbCount"></span></h3>
+    <div class="hint" id="fbHint">你反馈过的问题都会留在这里，我可以按它逐条修改。</div>
     <div id="fbListScroll"></div>
     <div class="row" style="margin-top:12px">
       <button class="btn ghost small" id="fbListClose">关闭</button>
@@ -273,11 +273,11 @@
     <button class="btn" id="sendBtn">发送</button>
   </div>
 </div>
-<script src="/js/util.js?v=11" defer></script>
-<script src="/js/quizcore.js?v=11" defer></script>
-<script src="/js/notes.js?v=11" defer></script>
-<script src="/js/account.js?v=11" defer></script>
-<script src="/js/home.js?v=11" defer></script>
-<script src="/js/auth.js?v=11" defer></script>
+<script src="/js/util.js?v=12" defer></script>
+<script src="/js/quizcore.js?v=12" defer></script>
+<script src="/js/notes.js?v=12" defer></script>
+<script src="/js/account.js?v=12" defer></script>
+<script src="/js/home.js?v=12" defer></script>
+<script src="/js/auth.js?v=12" defer></script>
 </body>
 </html>

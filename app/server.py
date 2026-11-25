@@ -950,9 +950,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send(200, st)
             return
         if path == '/api/feedback':
+            # 管理员看全部；普通用户只看自己提交的（反馈里可能有个人吐槽，不互相可见）
+            u = auth_of(self)
             con = db()
-            rows = con.execute('''SELECT id,qid,paper,no,kind,note,created_at,status
-                                  FROM feedback ORDER BY id DESC LIMIT 200''').fetchall()
+            if u and self._is_admin(u[0]):
+                rows = con.execute('''SELECT id,qid,paper,no,kind,note,created_at,status,username
+                                      FROM feedback ORDER BY id DESC LIMIT 200''').fetchall()
+            elif u:
+                rows = con.execute('''SELECT id,qid,paper,no,kind,note,created_at,status,username
+                                      FROM feedback WHERE user_id=? ORDER BY id DESC LIMIT 200''',
+                                   (u[0],)).fetchall()
+            else:
+                rows = []
             con.close()
             self._send(200, [dict(r) for r in rows])
             return
@@ -1103,12 +1112,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self._send(400, {'error': '缺少题目编号'})
                 return
             r = get_question(qid)
+            u = auth_of(self)
+            uid = u[0] if u else 0
+            uname = u[1] if u else ''
             con = db()
-            con.execute('''INSERT INTO feedback(qid,paper,no,kind,note,created_at,status)
-                           VALUES(?,?,?,?,?,?,'open')''',
+            con.execute('''INSERT INTO feedback(qid,paper,no,kind,note,created_at,status,user_id,username)
+                           VALUES(?,?,?,?,?,?,'open',?,?)''',
                         (qid, r['papers'] if r else '', r['no'] if r else '',
                          (body.get('kind') or '').strip()[:40],
-                         (body.get('note') or '').strip()[:1000], now()))
+                         (body.get('note') or '').strip()[:1000], now(), uid, uname))
             con.commit()
             con.close()
             self._send(200, {'ok': True})

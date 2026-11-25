@@ -397,8 +397,10 @@ function renderHome(){
 
 async function loadFeedback(force){
   if(!fbCache || force){
-    try{ fbCache = await fetch('/api/feedback').then(r=>r.json()); }
-    catch(e){ fbCache = []; }
+    try{
+      fbCache = await fetch('/api/feedback',
+        {headers: authToken ? {'X-Auth-Token': authToken} : {}}).then(r=>r.json());
+    }catch(e){ fbCache = []; }
     if(!Array.isArray(fbCache)) fbCache = [];
     store.set('feedback', fbCache);      // → 自动重画反馈列表与徽标
   }else{
@@ -490,6 +492,10 @@ async function viewQuestion(qid){
 
 /* 题目反馈列表（主页页头按钮） */
 $('#fbHomeBtn').onclick = async ()=>{
+  $('#fbTitle').textContent = me.is_admin ? '题目反馈（全部用户）' : '我的题目反馈';
+  $('#fbHint').textContent = me.is_admin
+    ? '所有用户提交的题目纠错都在这里，可标记已处理 / 忽略；我可以按它逐条修改。'
+    : '你反馈过的题目问题都在这里，管理员处理后状态会更新；在答题页点「⚠ 题目有问题」可以继续提交。';
   $('#fbListModal').classList.add('open');
   await loadFeedback(true);
 };

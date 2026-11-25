@@ -91,7 +91,7 @@ const state = {idx:0, sel:new Set(), sources:new Set(['A','B','C','D','EXTRA']),
 /* 选项乱序工具 */
 
 /* ---------- 懒加载脚本（同一文件只请求一次） ---------- */
-const JS_VER = '11';       // 改了 js 或题库数据就 bump，避免浏览器用旧缓存
+const JS_VER = '12';       // 改了 js 或题库数据就 bump，避免浏览器用旧缓存
 function loadScript(src){
   if(src.indexOf('?') < 0) src += '?v=' + JS_VER;
   window.__loaded = window.__loaded || {};
