@@ -1,0 +1,109 @@
+function shuffleArr(a){
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+/* 把解析里引用的原始选项字母换成乱序后的新字母（只处理 "c)" 和 "选项 C" 这类明确写法） */
+function remapExplain(text, perm){
+  if(!text) return '';
+  // 没有乱序也要按选项拆行（每个 a) b) c) 单独一行）
+  if(!perm || perm.length < 2) return reorderExplain(text);
+  const oldToNew = {};
+  perm.forEach((orig, i)=>{ oldToNew[orig] = LETTERS[i] || orig; });
+  let s = text.replace(/\b([A-Ha-h])\)/g, (m, ch)=>{
+    const nk = oldToNew[ch.toUpperCase()];
+    if(!nk) return m;
+    return (ch === ch.toUpperCase() ? nk : nk.toLowerCase()) + ')';
+  });
+  s = s.replace(/选项\s*([A-D])/g, (m, ch)=>{
+    const nk = oldToNew[ch];
+    return nk ? ('选项 ' + nk) : m;
+  });
+  return reorderExplain(s);
+}
+/* 原始解析是 a) b) c) d) 顺序写的，重映射后顺序会乱，按新字母排回来 */
+function reorderExplain(s){
+  const re = /(?:^|\s)([a-h])\)\s*/g;
+  const marks = [];
+  let m;
+  while((m = re.exec(s)) !== null){
+    marks.push({letter: m[1], start: m.index + m[0].length - m[0].trimStart().length, raw: m[0]});
+  }
+  if(marks.length < 2) return s;
+  const head = s.slice(0, marks[0].start).trim();
+  const blocks = marks.map((mk, i)=>{
+    const end = i + 1 < marks.length ? marks[i+1].start : s.length;
+    return {letter: mk.letter, text: s.slice(mk.start, end).trim()};
+  });
+  blocks.sort((a,b)=>a.letter.localeCompare(b.letter));
+  return (head ? head + '\n' : '') + blocks.map(b=>b.text).join('\n');
+}
+/* 当前题目的显示用选项：乱序时重排并重新编号，ok 保留原始字母用于判题 */
+function displayOptions(q){
+  const perm = (cur && cur.perms) ? cur.perms[q.id] : null;
+  const opts = q.options || [];
+  const omap = {};
+  opts.forEach(o=>{ omap[o.k] = o.t; });
+  // perm 必须覆盖全部选项才生效，否则（老场次/异常数据）按原顺序显示，避免丢选项
+  if(perm && perm.length === opts.length && perm.every(k=>omap[k] !== undefined)){
+    return perm.map((ok, i)=>({k: LETTERS[i] || ok, ok, t: omap[ok] || ''}));
+  }
+  return opts.map(o=>({k:o.k, ok:o.k, t:o.t}));
+}
+
+function chapterOf(lo){
+  const d = (lo||'').replace(/[^0-9]/g,'');
+  return d ? d[0] : '?';
+}
+/* 题目所属章节：优先取库里的 chapter 字段，老数据回退到从 lo 里取 */
+function chapterKey(q){
+  if(!q) return '?';
+  if(q.chapter !== undefined && q.chapter !== null && q.chapter !== '') return String(q.chapter);
+  return chapterOf(q.lo);
+}
+function makeSrcLabel(srcs, brief){
+  if(!srcs || !srcs.length) return '未选来源';
+  const allKeys = bankPapers().map(p=>p.key);
+  if(allKeys.length && srcs.length === allKeys.length && allKeys.every(k=>srcs.includes(k))) return '全部题目';
+  if(brief && srcs.length > 3) return `${srcs.length} 个来源`;
+  return srcs.map(s=>shortOf(s)).join(' + ');
+}
+function srcLabelOf(s, brief){
+  if(Array.isArray(s.sources)) return makeSrcLabel(s.sources, brief);
+  return SRC_LABEL[s.source] || s.source || '—';
+}
+
+function wrongPool(){
+  /* 遍历历史场次，答错加入、答对移除，得到当前错题集 */
+  const wrong = new Set();
+  sessions.slice().sort((a,b)=>a.ts-b.ts).forEach(s=>{
+    (s.items||[]).forEach(it=>{ it.correct ? wrong.delete(it.qid) : wrong.add(it.qid); });
+  });
+  return [...wrong];
+}
+function refNo(q, paper){
+  const r = (q.refs || []).find(x=>x.indexOf(paper+'-')===0);
+  const s = r || q.id;
+  const n = parseInt(String(s).split('-')[1].replace(/[^0-9]/g,''), 10);
+  return isNaN(n) ? 999 : n;
+}
+function poolFor(srcs){
+  if(!srcs || !srcs.length) return [];
+  const papers = srcs.filter(s=>['A','B','C','D'].includes(s));
+  const extra = srcs.includes('EXTRA');
+  const chs = srcs.filter(s=>s.indexOf('CH')===0).map(s=>s.slice(2));
+  const useWrong = srcs.includes('WRONG');
+  const wrongSet = useWrong ? new Set(wrongPool()) : null;
+  let res = allQ.filter(q=>{
+    const pq = q.papers.split(',');
+    if(!q.is_extra && papers.some(p=>pq.includes(p))) return true;
+    if(extra && q.is_extra===1) return true;
+    if(chs.length && chs.includes(chapterKey(q))) return true;
+    if(useWrong && wrongSet.has(q.id)) return true;
+    return false;
+  });
+  if(papers.length===1){          // 单卷练习时按该卷原始题号排序（合并题的卷号可能与 id 不同）
+    const p = papers[0];
+    res.sort((a,b)=>refNo(a,p)-refNo(b,p));
+  }
+  return res;
+}
