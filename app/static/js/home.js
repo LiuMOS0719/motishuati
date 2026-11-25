@@ -533,9 +533,7 @@ async function viewQuestion(qid){
   const ansSet = new Set(q.answer || []);
   $('#qvTitle').textContent = `题目预览 · ${refLabel(q)}${q.lo?' · '+q.lo:''}${q.k_level?' · '+q.k_level:''}`;
   $('#qvBody').innerHTML = `
-    <div class="stem">${esc(q.stem)}</div>
-    ${q.figure ? `<div class="fig">${q.figure.html}</div>`
-               : (q.image ? `<div class="stem"><img src="/img/${q.image}" alt="原题版面" loading="lazy"></div>` : '')}
+    ${stemBlock(q)}
     <div class="opts">${(q.options||[]).map(o=>`
       <div class="opt locked ${ansSet.has(o.k)?'right':''}">
         <div class="k">${o.k}</div><div>${esc(o.t)}</div>

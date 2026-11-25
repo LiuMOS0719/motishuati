@@ -41,8 +41,7 @@ function renderQuiz(){
       <span class="tag">${q.kind==='multi'?'多选':'单选'}</span>
       <button class="fbtag" id="fbBtn" title="题干/选项/图片/答案有问题都可以报">⚠ 题目有问题</button>
     </div>
-    <div class="stem">${esc(q.stem)}</div>
-    ${q.figure ? `<div class="fig">${q.figure.html}</div>` : (q.image ? `<div class="stem"><img src="/img/${q.image}" alt="原题版面" loading="lazy"></div>` : '')}
+    ${stemBlock(q)}
     <div class="opts" id="opts"></div>
     <div class="actions">
     ${answered?'':`<button class="btn" id="submitBtn" ${state.sel.size?'':'disabled'}>提交答案</button>`}

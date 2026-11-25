@@ -67,6 +67,16 @@ function makeSrcLabel(srcs, brief){
   if(brief && srcs.length > 3) return `${srcs.length} 个来源`;
   return srcs.map(s=>shortOf(s)).join(' + ');
 }
+/* 题干 + 图表：题干里写 {{FIG}} 时把图表插到该位置，否则附在题干之后 */
+function stemBlock(q){
+  const fig = q.figure ? `<div class="fig">${q.figure.html}</div>`
+    : (q.image ? `<div class="stem"><img src="/img/${q.image}" alt="原题版面" loading="lazy"></div>` : '');
+  const stem = esc(q.stem || '');
+  if(fig && stem.indexOf('{{FIG}}') >= 0){
+    return stem.split('{{FIG}}').map(t=>`<div class="stem">${t}</div>`).join(fig);
+  }
+  return `<div class="stem">${stem}</div>` + fig;
+}
 function srcLabelOf(s, brief){
   if(Array.isArray(s.sources)) return makeSrcLabel(s.sources, brief);
   return SRC_LABEL[s.source] || s.source || '—';
