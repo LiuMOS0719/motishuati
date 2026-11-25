@@ -305,11 +305,23 @@ function onAuthExpired(){
   showPage('pgLogin');
 }
 
-/* 加权抽样：做过的题降权，权重 = 1/(1+历史作答次数)，不放回 */
+/* 随机练习加权：按对错累计「困难分」——答错 +1、答对 -1（最低 0、最高 10），
+   权重 = 1 + 分数。做错过的题更容易被抽到，做熟的题回到基线（不会被彻底冷落）。 */
+function qWeights(){
+  const sc = {};
+  sessions.slice().sort((a,b)=>a.ts-b.ts).forEach(se=>{
+    (se.items||[]).forEach(it=>{
+      const cur = sc[it.qid] || 0;
+      sc[it.qid] = Math.max(0, Math.min(10, cur + (it.correct ? -1 : 1)));
+    });
+  });
+  return sc;
+}
+
+/* 加权抽样（不放回） */
 function weightedSample(pool, n){
-  const counts = {};
-  sessions.forEach(s=>(s.items||[]).forEach(it=>{ counts[it.qid] = (counts[it.qid] || 0) + 1; }));
-  const arr = pool.map(q=>({q, w: 1 / (1 + (counts[q.id] || 0))}));
+  const sc = qWeights();
+  const arr = pool.map(q=>({q, w: 1 + (sc[q.id] || 0)}));
   const out = [];
   const take = Math.min(n, arr.length);
   for(let k=0;k<take;k++){
