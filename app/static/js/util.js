@@ -92,7 +92,7 @@ const state = {idx:0, sel:new Set(), sources:new Set(['A','B','C','D','EXTRA']),
 /* 选项乱序工具 */
 
 /* ---------- 懒加载脚本（同一文件只请求一次） ---------- */
-const JS_VER = '15';       // 改了 js 或题库数据就 bump，避免浏览器用旧缓存
+const JS_VER = '16';       // 改了 js 或题库数据就 bump，避免浏览器用旧缓存
 function loadScript(src){
   if(src.indexOf('?') < 0) src += '?v=' + JS_VER;
   window.__loaded = window.__loaded || {};
@@ -113,3 +113,18 @@ async function ensurePageScripts(list){
 }
 
 let fbCache = null;   /* 反馈列表缓存（主页与答题页共用） */
+
+/* ---------- 弹窗打开时锁住背景滚动 ----------
+   所有弹窗 id 都以 Modal 结尾，监听 class 变化自动维护 */
+(function lockPageScroll(){
+  const sync = ()=>{
+    const anyOpen = [...document.querySelectorAll('[id$="Modal"]')]
+      .some(m=>m.classList.contains('open'));
+    document.body.classList.toggle('no-scroll', anyOpen);
+  };
+  const mo = new MutationObserver(sync);
+  document.querySelectorAll('[id$="Modal"]').forEach(m=>{
+    mo.observe(m, {attributes:true, attributeFilter:['class']});
+  });
+  sync();
+})();

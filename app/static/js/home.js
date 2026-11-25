@@ -305,16 +305,32 @@ function onAuthExpired(){
   showPage('pgLogin');
 }
 
+/* 加权抽样：做过的题降权，权重 = 1/(1+历史作答次数)，不放回 */
+function weightedSample(pool, n){
+  const counts = {};
+  sessions.forEach(s=>(s.items||[]).forEach(it=>{ counts[it.qid] = (counts[it.qid] || 0) + 1; }));
+  const arr = pool.map(q=>({q, w: 1 / (1 + (counts[q.id] || 0))}));
+  const out = [];
+  const take = Math.min(n, arr.length);
+  for(let k=0;k<take;k++){
+    let total = 0;
+    for(const x of arr) total += x.w;
+    let r = Math.random() * total, idx = 0;
+    for(; idx < arr.length; idx++){ r -= arr[idx].w; if(r <= 0) break; }
+    if(idx >= arr.length) idx = arr.length - 1;
+    out.push(arr[idx].q);
+    arr.splice(idx, 1);
+  }
+  return out;
+}
+
 async function startSession(srcs, mode, n){
   let pool = poolFor(srcs);
   if(!pool.length){ alert('这个来源组合没有题目'); return; }
   // 选的档位大于题池时，按题池数量出题
   const cnt = Math.min(Number(n) || 40, 100, pool.length);
-  if(mode==='random'){
-    pool = pool.slice();
-    for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
-  }
-  const picked = pool.slice(0, cnt);
+  // 随机练习按「做过次数」加权抽样；顺序练习保持原卷顺序
+  const picked = mode==='random' ? weightedSample(pool, cnt) : pool.slice(0, cnt);
   // 答案乱序：先确保题目正文已加载，再为每题生成固定的一份乱序表
   let perms = null;
   if(state.optOrder === 'shuffle'){
@@ -360,14 +376,18 @@ function renderChapters(){
     const pool = allQ.filter(q=>chapterKey(q) === n);
     const done = pool.filter(q=>latest[q.id] !== undefined);
     const right = done.filter(q=>latest[q.id]).length;
+    const wrong = done.length - right;
     const acc = done.length ? Math.round(right/done.length*100) : 0;
-    const pct = pool.length ? Math.round(done.length/pool.length*100) : 0;
-    const cls = !done.length ? '' : (acc>=65?'good':acc>=50?'mid':'bad');
+    // 三段式：绿=最近一次做对、红=最近一次做错、灰=还没做
+    const pR = pool.length ? right/pool.length*100 : 0;
+    const pW = pool.length ? wrong/pool.length*100 : 0;
+    const pN = pool.length ? (pool.length-done.length)/pool.length*100 : 0;
+    const mastered = done.length > 0 && acc >= 90;   // 正确率 90% 以上算已掌握
     const row = document.createElement('div');
     row.className = 'chrow';
     row.innerHTML = `
-      <div class="chname">${name}</div>
-      <div class="chbar"><i class="${cls}" style="width:${pct}%"></i></div>
+      <div class="chname">${name}${mastered?' <span class="chmaster">已掌握</span>':''}</div>
+      <div class="chbar"><i class="good" style="width:${pR}%"></i><i class="bad" style="width:${pW}%"></i><i class="none" style="width:${pN}%"></i></div>
       <div class="chnum">${done.length}/${pool.length} 题${done.length?` · ${acc}%`:' · 未做'}</div>`;
     row.onclick = ()=>{
       if(!pool.length){ alert('这一章暂时没有题目'); return; }

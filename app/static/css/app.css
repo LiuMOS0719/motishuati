@@ -83,9 +83,16 @@ select:focus,input:focus{outline:none;border-color:var(--acc)}
 .chrow:last-child{border-bottom:0}
 .chrow:hover .chname{color:var(--acc)}
 .chname{font-size:13.5px;width:200px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chbar{flex:1;height:7px;background:var(--panel2);border-radius:99px;overflow:hidden;min-width:60px}
-.chbar i{display:block;height:100%;border-radius:99px;background:var(--acc)}
-.chbar i.good{background:var(--ok)}.chbar i.mid{background:var(--warn)}.chbar i.bad{background:var(--bad)}
+.chbar{flex:1;display:flex;height:7px;background:var(--panel2);border-radius:99px;overflow:hidden;min-width:60px}
+.chbar i{display:block;height:100%}
+.chbar i.good{background:var(--ok)}
+.chbar i.bad{background:var(--bad)}
+.chbar i.none{background:var(--panel2)}
+.chbar i:first-child{border-radius:99px 0 0 99px}
+.chbar i:last-child{border-radius:0 99px 99px 0}
+.chbar i:only-child{border-radius:99px}
+.chmaster{font-size:11px;color:var(--ok);border:1px solid rgba(34,197,94,.45);background:rgba(34,197,94,.12);border-radius:99px;padding:1px 7px;margin-left:6px;vertical-align:middle}
+body.no-scroll{overflow:hidden}
 .chnum{font-size:12px;color:var(--dim);width:104px;text-align:right;flex-shrink:0}
 /* 答题 */
 .qmeta{display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin-bottom:10px}
@@ -144,6 +151,9 @@ table.qtab tr.act th,table.qtab th.act{background:#20262e;color:#8b95a3;font-wei
   border-left:1px solid var(--line);border-top:1px solid var(--line);border-radius:14px 0 0 0;display:none;
   flex-direction:column;z-index:50;box-shadow:-8px 0 30px rgba(0,0,0,.5)}
 #drawer.open{display:flex}
+#drawerGrip{position:absolute;left:0;top:0;width:16px;height:16px;cursor:nwse-resize;z-index:3;
+  background:linear-gradient(135deg,rgba(148,163,184,.55) 0 1px,transparent 1px 4px,
+  rgba(148,163,184,.55) 4px 5px,transparent 5px 8px,rgba(148,163,184,.55) 8px 9px,transparent 9px);border-radius:14px 0 0 0}
 #drawer .top{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line)}
 #drawer .top b{font-size:14px;flex:1}
 #drawer .top button{background:none;border:0;color:var(--dim);font-size:20px;cursor:pointer;line-height:1}

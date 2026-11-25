@@ -99,10 +99,8 @@ function showResult(q, ok){
     <div class="explain">${esc(explain)}</div>`;
 }
 $('#cardBtn').onclick = ()=>document.getElementById('qcard').classList.toggle('mopen');
-$('#quitBtn').onclick = ()=>{
-  if(confirm('退出本次练习？已做的题会存进历史记录，下次打开可以继续。')){
-    commitSession(false); showPage('pgHome'); renderHome(); }
-};
+/* 退出不再弹原生确认：进度已存进历史，主页直接能「继续」，误触也回得去 */
+$('#quitBtn').onclick = ()=>{ commitSession(false); showPage('pgHome'); renderHome(); };
 $('#finishBtn').onclick = async ()=>{
   const unanswered = cur.qids.length - cur.items.length;
   if(unanswered>0 && !confirm(`还有 ${unanswered} 题没作答，确定结束吗？`)) return;

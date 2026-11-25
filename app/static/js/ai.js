@@ -83,9 +83,56 @@ function openAskDrawer(qid){
     b.onclick=()=>askAI(t); chips.appendChild(b);
   });
   renderChat();
+  applyDrawerSize();
   $('#drawer').classList.add('open');
   $('#askinput').focus();
 }
+
+/* ---------- 抽屉拖动改大小（PC 端；按账号记住尺寸） ---------- */
+const DRAWER_MIN_W = 320, DRAWER_MIN_H = 280;
+function drawerSizeKey(){ return 'moti_drawer_size:' + ((typeof me !== 'undefined' && me.username) || 'anon'); }
+function applyDrawerSize(){
+  const d = $('#drawer');
+  if(window.innerWidth <= 768){ d.style.width = ''; d.style.height = ''; return; }  // 移动端保持全宽
+  try{
+    const s = JSON.parse(localStorage.getItem(drawerSizeKey()) || 'null');
+    if(!s || !s.w || !s.h) return;
+    d.style.width = Math.min(s.w, window.innerWidth - 24) + 'px';
+    d.style.height = Math.min(s.h, window.innerHeight - 24) + 'px';
+  }catch(e){}
+}
+window.addEventListener('resize', ()=>{ if($('#drawer').classList.contains('open')) applyDrawerSize(); });
+(function initDrawerGrip(){
+  const grip = $('#drawerGrip');
+  if(!grip) return;
+  let dragging = false, sx = 0, sy = 0, sw = 0, sh = 0;
+  grip.addEventListener('mousedown', e=>{
+    if(window.innerWidth <= 768) return;       // 移动端不拖
+    const d = $('#drawer');
+    sw = d.getBoundingClientRect().width;
+    sh = d.getBoundingClientRect().height;
+    sx = e.clientX; sy = e.clientY;
+    dragging = true; window.__drawerDragging = true;
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e=>{
+    if(!dragging) return;
+    const d = $('#drawer');
+    const w = Math.min(Math.max(sw - (e.clientX - sx), DRAWER_MIN_W), window.innerWidth - 24);
+    const h = Math.min(Math.max(sh - (e.clientY - sy), DRAWER_MIN_H), window.innerHeight - 24);
+    d.style.width = w + 'px';
+    d.style.height = h + 'px';
+  });
+  window.addEventListener('mouseup', ()=>{
+    if(!dragging) return;
+    dragging = false;
+    const r = $('#drawer').getBoundingClientRect();
+    try{
+      localStorage.setItem(drawerSizeKey(), JSON.stringify({w: Math.round(r.width), h: Math.round(r.height)}));
+    }catch(e){}
+    setTimeout(()=>{ window.__drawerDragging = false; }, 80);   // 吞掉拖拽收尾时的那次 click
+  });
+})();
 async function askAI(text){
   const t = (text||'').trim();
   if(!t) return;
@@ -145,6 +192,7 @@ $('#fab').onclick = ()=>{
 $('#closeDrawer').onclick = ()=>$('#drawer').classList.remove('open');
 /* 点对话窗口外面就收起（点右下角问 AI 按钮不算外面，交给它自己开关） */
 document.addEventListener('click', e=>{
+  if(window.__drawerDragging) return;          // 拖拽收尾不算点击
   const d = $('#drawer');
   if(!d.classList.contains('open')) return;
   if(d.contains(e.target)) return;
