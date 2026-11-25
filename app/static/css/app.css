@@ -214,6 +214,7 @@ table.qtab tr.act th,table.qtab th.act{background:#20262e;color:#8b95a3;font-wei
   padding:6px 11px;font-size:12px;cursor:pointer;font-family:inherit}
 .mbtn.on{background:rgba(59,130,246,.16);border-color:var(--acc);color:#cfe0ff}
 .mbtn b{color:inherit}
+.mver{font-size:10.5px;opacity:.62;margin-left:4px}
 .adminrow{display:flex;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);
   font-size:13px;flex-wrap:wrap}
 .adminrow:last-child{border-bottom:0}

@@ -305,29 +305,44 @@ function onAuthExpired(){
   showPage('pgLogin');
 }
 
-/* 每题权重 0~10，初始 5：做错 +1、做对 -1。
-   章节掌握：权重 < 2（即 0 或 1）算已掌握。
-   随机练习：直接按权重加权抽样，做熟的题（权重低）很少再出现。 */
-const QW_INIT = 5;
+/* 单题权重 = 正确率（百分制 0~100）
+   口径：只看最近 5 次作答，按 (对+1)/(总+2) 平滑，避免做一次就定生死；
+   例外：连对 3 次直接算 100（翻身），连错 2 次直接算 0（打回）。
+   没做过的题没有记录 → 权重 0（最优先抽到）。 */
+const QW_WINDOW = 5;
 function qWeights(){
-  const sc = {};
+  const hist = {};
   sessions.slice().sort((a,b)=>a.ts-b.ts).forEach(se=>{
     (se.items||[]).forEach(it=>{
-      const cur = sc[it.qid] === undefined ? QW_INIT : sc[it.qid];
-      sc[it.qid] = Math.max(0, Math.min(10, cur + (it.correct ? -1 : 1)));
+      (hist[it.qid] = hist[it.qid] || []).push(it.correct ? 1 : 0);
     });
   });
-  return sc;
+  const out = {};
+  Object.keys(hist).forEach(qid=>{
+    const seq = hist[qid];
+    const win = seq.slice(-QW_WINDOW);
+    let acc = Math.round((win.reduce((s,x)=>s+x,0) + 1) / (win.length + 2) * 100);
+    let streak = 0, kind = null;
+    for(let i = seq.length - 1; i >= 0; i--){
+      if(kind === null) kind = seq[i];
+      if(seq[i] !== kind) break;
+      streak++;
+    }
+    if(kind === 1 && streak >= 3) acc = 100;   // 连对 3 次算掌握
+    if(kind === 0 && streak >= 2) acc = 0;     // 连错 2 次打回
+    out[qid] = acc;
+  });
+  return out;
 }
-function qWeight(sc, qid){
-  const v = sc[qid];
-  return v === undefined ? QW_INIT : v;
+function qWeightOf(w, qid){
+  const v = w[qid];
+  return v === undefined ? 0 : v;              // 没做过 = 0
 }
 
-/* 加权抽样（不放回） */
+/* 加权抽样（不放回）：权重越低抽中概率越高，抽题权重 1~11 */
 function weightedSample(pool, n){
-  const sc = qWeights();
-  const arr = pool.map(q=>({q, w: Math.max(0.02, qWeight(sc, q.id))}));
+  const w = qWeights();
+  const arr = pool.map(q=>({q, w: 1 + Math.round((100 - qWeightOf(w, q.id)) / 10)}));
   const out = [];
   const take = Math.min(n, arr.length);
   for(let k=0;k<take;k++){
@@ -386,7 +401,7 @@ $('#startBtn').onclick = ()=>{
 function renderChapters(){
   const latest = {};
   sessions.slice().sort((a,b)=>a.ts-b.ts).forEach(s=>(s.items||[]).forEach(i=>{ latest[i.qid]=i.correct; }));
-  const sc = qWeights();                       // 与随机练习同一套困难分
+  const w = qWeights();                        // 单题权重 = 正确率
   const box = $('#chBox');
   box.innerHTML = '';
   bankChapters().forEach(c=>{
@@ -394,8 +409,8 @@ function renderChapters(){
     const name = c.full || ('第 ' + n + ' 章');
     const pool = allQ.filter(q=>chapterKey(q) === n);
     const done = pool.filter(q=>latest[q.id] !== undefined);
-    // 单题是否掌握：权重 < 2（初始 5，做错 +1、做对 -1）
-    const mq = done.filter(q=>qWeight(sc, q.id) < 2);
+    // 单题是否掌握：权重（正确率）> 75
+    const mq = done.filter(q=>qWeightOf(w, q.id) > 75);
     const wq = done.length - mq.length;
     const acc = done.length ? Math.round(mq.length/done.length*100) : 0;   // 掌握率
     // 三段式：绿=已掌握、红=未掌握、灰=还没做

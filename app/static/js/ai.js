@@ -71,8 +71,21 @@ function renderChat(){
   });
   box.scrollTop = 1e9;
 }
+/* 模型按钮上显示具体型号（从 /api/health 取，改 .env.ai 的模型名时前端自动跟随） */
+let modelLabelsLoaded = false;
+function loadModelLabels(){
+  if(modelLabelsLoaded) return;
+  fetch('/api/health').then(r=>r.json()).then(h=>{
+    const ds = document.querySelector('.mbtn[data-model="deepseek"] .mver');
+    const gl = document.querySelector('.mbtn[data-model="glm"] .mver');
+    if(ds && h.model) ds.textContent = h.model;
+    if(gl && h.glm_model) gl.textContent = h.glm_model;
+    modelLabelsLoaded = true;
+  }).catch(()=>{});
+}
 function openAskDrawer(qid){
   drawerQid = qid; drawerSid = curSid();
+  loadModelLabels();
   const q = QS[qid];
   $('#drawerTitle').textContent = q ? `问 AI · ${refLabel(q)}` : '问 AI 老师';
   $('#dhint').textContent = HINT_TEXT;

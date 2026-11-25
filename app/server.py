@@ -970,7 +970,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             n = con.execute('SELECT COUNT(*) c FROM questions').fetchone()['c']
             con.close()
             self._send(200, {'ok': True, 'ai': bool(DEEPSEEK_KEY), 'questions': n,
-                             'model': DEEPSEEK_MODEL})
+                             'model': DEEPSEEK_MODEL, 'glm_model': GLM_MODEL,
+                             'vlm_model': VLM_MODEL})
             return
         self._send(404, 'not found', 'text/plain')
 
