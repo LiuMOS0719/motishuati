@@ -380,6 +380,7 @@ $('#startBtn').onclick = ()=>{
 function renderChapters(){
   const latest = {};
   sessions.slice().sort((a,b)=>a.ts-b.ts).forEach(s=>(s.items||[]).forEach(i=>{ latest[i.qid]=i.correct; }));
+  const sc = qWeights();                       // 与随机练习同一套困难分
   const box = $('#chBox');
   box.innerHTML = '';
   bankChapters().forEach(c=>{
@@ -387,21 +388,22 @@ function renderChapters(){
     const name = c.full || ('第 ' + n + ' 章');
     const pool = allQ.filter(q=>chapterKey(q) === n);
     const done = pool.filter(q=>latest[q.id] !== undefined);
-    const right = done.filter(q=>latest[q.id]).length;
-    const wrong = done.length - right;
-    const acc = done.length ? Math.round(right/done.length*100) : 0;
-    // 三段式：绿=最近一次做对、红=最近一次做错、灰=还没做
-    const pR = pool.length ? right/pool.length*100 : 0;
-    const pW = pool.length ? wrong/pool.length*100 : 0;
+    // 单题是否掌握：权重 = 1 + 困难分（错 +1、对 -1），≤2 视为掌握
+    const mq = done.filter(q=>1 + (sc[q.id] || 0) <= 2);
+    const wq = done.length - mq.length;
+    const acc = done.length ? Math.round(mq.length/done.length*100) : 0;   // 掌握率
+    // 三段式：绿=已掌握、红=未掌握、灰=还没做
+    const pR = pool.length ? mq.length/pool.length*100 : 0;
+    const pW = pool.length ? wq/pool.length*100 : 0;
     const pN = pool.length ? (pool.length-done.length)/pool.length*100 : 0;
-    // 已掌握 = 正确率 ≥90% 且该章至少做过一半题（只做两三题全对不算）
+    // 已掌握 = 掌握率 ≥90% 且该章至少做过一半题
     const mastered = done.length >= Math.ceil(pool.length * 0.5) && acc >= 90;
     const row = document.createElement('div');
     row.className = 'chrow';
     row.innerHTML = `
       <div class="chname"><span class="chntxt">${name}</span>${mastered?'<span class="chmaster">已掌握</span>':''}</div>
       <div class="chbar"><i class="good" style="width:${pR}%"></i><i class="bad" style="width:${pW}%"></i><i class="none" style="width:${pN}%"></i></div>
-      <div class="chnum">${done.length}/${pool.length} 题${done.length?` · ${acc}%`:' · 未做'}</div>`;
+      <div class="chnum">${done.length}/${pool.length} 题${done.length?` · 掌握 ${acc}%`:' · 未做'}</div>`;
     row.onclick = ()=>{
       if(!pool.length){ alert('这一章暂时没有题目'); return; }
       const mode = document.querySelector('#fMode button.on').dataset.mode;
