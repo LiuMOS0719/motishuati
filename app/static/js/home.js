@@ -394,7 +394,8 @@ function renderChapters(){
     const pR = pool.length ? right/pool.length*100 : 0;
     const pW = pool.length ? wrong/pool.length*100 : 0;
     const pN = pool.length ? (pool.length-done.length)/pool.length*100 : 0;
-    const mastered = done.length > 0 && acc >= 90;   // 正确率 90% 以上算已掌握
+    // 已掌握 = 正确率 ≥90% 且该章至少做过一半题（只做两三题全对不算）
+    const mastered = done.length >= Math.ceil(pool.length * 0.5) && acc >= 90;
     const row = document.createElement('div');
     row.className = 'chrow';
     row.innerHTML = `
