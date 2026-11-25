@@ -1113,6 +1113,60 @@ class Handler(http.server.BaseHTTPRequestHandler):
             con.close()
             self._send(200, {'ok': True})
             return
+        if path == '/api/notes':
+            u = auth_of(self)
+            if not u or not self._is_admin(u[0]):
+                self._send(403, {'error': '仅管理员'})
+                return
+            action = (body.get('action') or 'list').strip()
+            con = db()
+            if action == 'list':
+                rows = con.execute('''SELECT id,username,page,qid,kind,note,status,created_at,done_at
+                                      FROM admin_notes ORDER BY
+                                      CASE status WHEN 'open' THEN 0 ELSE 1 END, id DESC
+                                      LIMIT 200''').fetchall()
+                con.close()
+                self._send(200, {'ok': True, 'notes': [dict(r) for r in rows],
+                                 'open': sum(1 for r in rows if r['status'] == 'open')})
+                return
+            if action == 'add':
+                note = (body.get('note') or '').strip()
+                if not note:
+                    con.close()
+                    self._send(400, {'error': '内容不能为空'})
+                    return
+                cur = con.execute('''INSERT INTO admin_notes(username,page,qid,kind,note,status,created_at)
+                                     VALUES(?,?,?,?,?, 'open', ?)''',
+                                  (u[1] if len(u) > 1 else '', (body.get('page') or '')[:20],
+                                   (body.get('qid') or '')[:20], (body.get('kind') or 'bug')[:20],
+                                   note[:2000], now()))
+                con.commit()
+                nid = cur.lastrowid
+                con.close()
+                self._send(200, {'ok': True, 'id': nid})
+                return
+            if action in ('set', 'del'):
+                try:
+                    nid = int(body.get('id') or 0)
+                except Exception:
+                    nid = 0
+                if not nid:
+                    con.close()
+                    self._send(400, {'error': '参数不对'})
+                    return
+                if action == 'del':
+                    con.execute('DELETE FROM admin_notes WHERE id=?', (nid,))
+                else:
+                    st = 'done' if body.get('status') == 'done' else 'open'
+                    con.execute('UPDATE admin_notes SET status=?, done_at=? WHERE id=?',
+                                (st, now() if st == 'done' else None, nid))
+                con.commit()
+                con.close()
+                self._send(200, {'ok': True})
+                return
+            con.close()
+            self._send(400, {'error': '未知操作'})
+            return
         if path == '/api/review':
             if not (body.get('stats') or {}).get('answered'):
                 self._send(400, {'error': '还没有作答记录，先做几道题再来看整体评价'})

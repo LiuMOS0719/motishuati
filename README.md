@@ -339,10 +339,34 @@ docker logs -f moti
 docker exec moti python3 /app/import.py    # 题库更新后重新导入
 ```
 
+## 问题记录本（管理员）
+
+页头的「📝 记录」按钮在**主页 / 答题页 / 结果页**都有（仅管理员可见），用来随手记使用中发现的问题或想改的地方；下次改功能时按这里逐条读，用户确认后再动。
+
+| 项 | 说明 |
+|---|---|
+| 存在哪 | `admin_notes` 表：`id / username / page / qid / kind / note / status / created_at / done_at` |
+| 自动带上下文 | 记录时自动写入所在页面（主页/答题页/结果页）和当前题目 `qid`，方便以后定位 |
+| 面板里能做 | 标记已处理 / 重新打开 / 删除；勾「显示已处理」看历史 |
+| 页头角标 | 按钮上的数字 = 待处理条数 |
+| 分类 | 问题（bug）/ 改进（improve）/ 想法（idea） |
+
+读取待处理记录：
+
+```bash
+docker exec moti python3 -c "
+import sqlite3
+c = sqlite3.connect('/data/quiz.db'); c.row_factory = sqlite3.Row
+for r in c.execute(\"SELECT id,page,qid,kind,note,created_at FROM admin_notes WHERE status='open' ORDER BY id\"):
+    print(dict(r))
+"
+```
+
 ## API
 
 | 接口 | 用途 |
 |---|---|
+| `POST /api/notes` | 管理员：问题记录本（`action` = list / add / set / del） |
 | `POST /api/register` | `{username, password}` 注册，返回 token |
 | `POST /api/login` | `{username, password}` 登录，返回 token |
 | `POST /api/logout` | 注销当前 token |

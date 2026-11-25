@@ -215,9 +215,9 @@ table.qtab tr.act th,table.qtab th.act{background:#20262e;color:#8b95a3;font-wei
   .homegrid{grid-template-columns:1fr}
   .sidebar{position:static}
 }
-#adminModal{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;z-index:72;padding:16px}
-#adminModal.open{display:flex}
-#adminModal .mbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+#adminModal,#noteModal{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;z-index:72;padding:16px}
+#adminModal.open,#noteModal.open{display:flex}
+#adminModal .mbox,#noteModal .mbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
 #copyModal{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;z-index:72;padding:16px}
 #copyModal.open{display:flex}
 #copyModal .mbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}

@@ -73,6 +73,11 @@ async function loadUserPanels(){
     }
   }catch(e){}
   $('#adminBtn').style.display = me.is_admin ? 'inline-block' : 'none';
+  /* 「📝 记录」只在管理员可见，并在进站时挂上待处理数量 */
+  document.querySelectorAll('.noteBtn').forEach(b=>{
+    b.style.display = me.is_admin ? 'inline-block' : 'none';
+  });
+  if(me.is_admin && typeof loadNoteBadge === 'function') loadNoteBadge();
   // 排名缓存过期就后台更新（不阻塞界面）
   ['accuracy','count'].forEach(s=>{
     const c = rankCache[s];

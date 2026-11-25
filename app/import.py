@@ -56,6 +56,17 @@ CREATE TABLE IF NOT EXISTS feedback(
   created_at TEXT,
   status TEXT DEFAULT 'open'
 );
+CREATE TABLE IF NOT EXISTS admin_notes(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT,
+  page TEXT,
+  qid TEXT,
+  kind TEXT,
+  note TEXT NOT NULL,
+  status TEXT DEFAULT 'open',
+  created_at TEXT,
+  done_at TEXT
+);
 CREATE TABLE IF NOT EXISTS users(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL,
