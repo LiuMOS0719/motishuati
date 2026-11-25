@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS ask_usage(  user_id INTEGER NOT NULL,
 # 老库升级：给 users 补列
 MIGRATIONS = [
     ('users', 'is_admin', 'INTEGER DEFAULT 0'),
-    ('users', 'quota', 'INTEGER DEFAULT 50'),
+    ('users', 'quota', 'INTEGER DEFAULT 0'),   # 新账号默认没有 DeepSeek 额度，由管理员按需发放
 ]
 
 

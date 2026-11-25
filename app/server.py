@@ -151,7 +151,8 @@ def register(username, password):
     h, salt = hash_pw(password)
     con = db()
     try:
-        con.execute('INSERT INTO users(username,pass_hash,salt,created_at) VALUES(?,?,?,?)',
+        # 新账号从 0 次 DeepSeek 额度开始（GLM 不限次，DeepSeek 需管理员发放）
+        con.execute('INSERT INTO users(username,pass_hash,salt,quota,created_at) VALUES(?,?,?,0,?)',
                     (username, h, salt, now()))
         con.commit()
         uid = con.execute('SELECT id FROM users WHERE username=?', (username,)).fetchone()['id']
@@ -726,6 +727,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         sys.stderr.write('[%s] %s\n' % (now(), fmt % args))
 
+    def _client_ip(self):
+        """取真实来源 IP。只有直连方是本机/内网（自己的 nginx）时才采信转发头，
+        避免公网客户端伪造 X-Real-IP 绕过登录失败计数。
+        X-Real-IP 应由 nginx 用 $remote_addr 覆盖写入；XFF 取最后一跳（nginx 追加的那段）。"""
+        ip = self.client_address[0]
+        private = (ip in ('127.0.0.1', '::1')
+                   or ip.startswith('10.') or ip.startswith('192.168.')
+                   or ip.startswith('172.') or ip.startswith('::ffff:127.'))
+        if private:
+            real = (self.headers.get('X-Real-IP') or '').strip()
+            if real:
+                return real
+            xff = (self.headers.get('X-Forwarded-For') or '').strip()
+            if xff:
+                return xff.split(',')[-1].strip()
+        return ip
+
     def _send(self, code, body, ctype='application/json; charset=utf-8',
               cache='no-store', use_etag=True):
         if isinstance(body, (dict, list)):
@@ -970,7 +988,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         if path == '/api/login':
             uname = (body.get('username') or '').strip()
-            gkey = f"{self.client_address[0]}|{uname.lower()}"
+            gkey = f"{self._client_ip()}|{uname.lower()}"
             left = login_guard(gkey)
             if left:
                 self._send(429, {'error': f'尝试次数过多，请 {left} 秒后再试', 'locked_for': left})
@@ -980,6 +998,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 login_ok(gkey)
             else:
                 remain, locked = login_fail(gkey)
+                sys.stderr.write('[login] 密码错误 user=%s ip=%s %s\n'
+                                 % (uname, gkey.split('|')[0],
+                                    ('锁定 %d 秒' % locked) if locked else ('剩余 %d 次' % remain)))
                 if locked:
                     res['locked_for'] = locked
                     res['error'] = f'密码错误次数过多，已锁定 {locked} 秒'
