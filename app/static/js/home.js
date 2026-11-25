@@ -398,7 +398,7 @@ function renderChapters(){
     const row = document.createElement('div');
     row.className = 'chrow';
     row.innerHTML = `
-      <div class="chname">${name}${mastered?' <span class="chmaster">已掌握</span>':''}</div>
+      <div class="chname"><span class="chntxt">${name}</span>${mastered?'<span class="chmaster">已掌握</span>':''}</div>
       <div class="chbar"><i class="good" style="width:${pR}%"></i><i class="bad" style="width:${pW}%"></i><i class="none" style="width:${pN}%"></i></div>
       <div class="chnum">${done.length}/${pool.length} 题${done.length?` · ${acc}%`:' · 未做'}</div>`;
     row.onclick = ()=>{

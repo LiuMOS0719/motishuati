@@ -82,7 +82,8 @@ select:focus,input:focus{outline:none;border-color:var(--acc)}
 .chrow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .chrow:last-child{border-bottom:0}
 .chrow:hover .chname{color:var(--acc)}
-.chname{font-size:13.5px;width:200px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chname{font-size:13.5px;width:200px;flex-shrink:0;display:flex;align-items:center;gap:6px;min-width:0}
+.chname .chntxt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
 .chbar{flex:1;display:flex;height:7px;background:var(--panel2);border-radius:99px;overflow:hidden;min-width:60px}
 .chbar i{display:block;height:100%}
 .chbar i.good{background:var(--ok)}
@@ -269,8 +270,9 @@ table.qtab tr.act th,table.qtab th.act{background:#20262e;color:#8b95a3;font-wei
   .wrap{padding:14px 12px 80px}
   .stem{font-size:15px}
   .sess{padding:10px 12px}
+  .chname{width:100%}
+  .chname .chntxt{white-space:normal;overflow:visible;flex:none}
   .chrow{flex-wrap:wrap;gap:5px}
-  .chname{width:100%;white-space:normal}
   .chnum{width:auto;text-align:left;font-size:11px}
 }
 
