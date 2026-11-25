@@ -9,10 +9,10 @@ function remapExplain(text, perm){
   if(!perm || perm.length < 2) return reorderExplain(text);
   const oldToNew = {};
   perm.forEach((orig, i)=>{ oldToNew[orig] = LETTERS[i] || orig; });
-  let s = text.replace(/\b([A-Ha-h])\)/g, (m, ch)=>{
+  let s = text.replace(/\b([A-Ha-h])([)）])/g, (m, ch, br)=>{
     const nk = oldToNew[ch.toUpperCase()];
     if(!nk) return m;
-    return (ch === ch.toUpperCase() ? nk : nk.toLowerCase()) + ')';
+    return (ch === ch.toUpperCase() ? nk : nk.toLowerCase()) + br;
   });
   s = s.replace(/选项\s*([A-D])/g, (m, ch)=>{
     const nk = oldToNew[ch];
@@ -22,7 +22,7 @@ function remapExplain(text, perm){
 }
 /* 原始解析是 a) b) c) d) 顺序写的，重映射后顺序会乱，按新字母排回来 */
 function reorderExplain(s){
-  const re = /(?:^|\s)([a-h])\)\s*/g;
+  const re = /(?:^|\s)([a-h])([)）])\s*/g;
   const marks = [];
   let m;
   while((m = re.exec(s)) !== null){
