@@ -305,23 +305,29 @@ function onAuthExpired(){
   showPage('pgLogin');
 }
 
-/* 随机练习加权：按对错累计「困难分」——答错 +1、答对 -1（最低 0、最高 10），
-   权重 = 1 + 分数。做错过的题更容易被抽到，做熟的题回到基线（不会被彻底冷落）。 */
+/* 随机练习加权：每题一个「熟练分」，初始 5，答错 +1、答对 -1（夹在 -12..15）。
+   分数越低越熟练；随机练习权重 = 2^(分数-5)，没做过的题权重为 1。
+   章节掌握：分数 < -6 才算该题已掌握。 */
+const QS_INIT = 5;
 function qWeights(){
   const sc = {};
   sessions.slice().sort((a,b)=>a.ts-b.ts).forEach(se=>{
     (se.items||[]).forEach(it=>{
-      const cur = sc[it.qid] || 0;
-      sc[it.qid] = Math.max(0, Math.min(10, cur + (it.correct ? -1 : 1)));
+      const cur = sc[it.qid] === undefined ? QS_INIT : sc[it.qid];
+      sc[it.qid] = Math.max(-12, Math.min(15, cur + (it.correct ? -1 : 1)));
     });
   });
   return sc;
+}
+function qScore(sc, qid){
+  const v = sc[qid];
+  return v === undefined ? QS_INIT : v;
 }
 
 /* 加权抽样（不放回） */
 function weightedSample(pool, n){
   const sc = qWeights();
-  const arr = pool.map(q=>({q, w: 1 + (sc[q.id] || 0)}));
+  const arr = pool.map(q=>({q, w: Math.pow(2, qScore(sc, q.id) - QS_INIT)}));
   const out = [];
   const take = Math.min(n, arr.length);
   for(let k=0;k<take;k++){
@@ -388,8 +394,8 @@ function renderChapters(){
     const name = c.full || ('第 ' + n + ' 章');
     const pool = allQ.filter(q=>chapterKey(q) === n);
     const done = pool.filter(q=>latest[q.id] !== undefined);
-    // 单题是否掌握：权重 = 1 + 困难分（错 +1、对 -1），≤2 视为掌握
-    const mq = done.filter(q=>1 + (sc[q.id] || 0) <= 2);
+    // 单题是否掌握：熟练分 < -6（初始 5，做对 -1、做错 +1）
+    const mq = done.filter(q=>qScore(sc, q.id) < -6);
     const wq = done.length - mq.length;
     const acc = done.length ? Math.round(mq.length/done.length*100) : 0;   // 掌握率
     // 三段式：绿=已掌握、红=未掌握、灰=还没做
