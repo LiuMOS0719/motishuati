@@ -63,6 +63,9 @@ function esc(s){ return (s||'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>'
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   $('#'+id).classList.add('active');
+  /* 「问 AI」悬浮按钮只在答题页出现（主页/结果页隐藏，2026-11-26） */
+  const fab = $('#fab');
+  if(fab) fab.style.display = (id === 'pgQuiz') ? '' : 'none';
   window.scrollTo(0,0);
 }
 function fmtTime(ts){
@@ -92,7 +95,7 @@ const state = {idx:0, sel:new Set(), sources:new Set(['A','B','C','D','EXTRA']),
 /* 选项乱序工具 */
 
 /* ---------- 懒加载脚本（同一文件只请求一次） ---------- */
-const JS_VER = '28';       // 改了 js 或题库数据就 bump，避免浏览器用旧缓存
+const JS_VER = '29';       // 改了 js 或题库数据就 bump，避免浏览器用旧缓存
 function loadScript(src){
   if(src.indexOf('?') < 0) src += '?v=' + JS_VER;
   window.__loaded = window.__loaded || {};

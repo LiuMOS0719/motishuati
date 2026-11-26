@@ -75,11 +75,21 @@ async function loadUserPanels(){
   $('#adminBtn').style.display = me.is_admin ? 'inline-block' : 'none';
   /* 「⚠ 题目反馈」列表入口仅管理员可见（普通用户只在答题页提交单题反馈，不看列表） */
   $('#fbHomeBtn').style.display = me.is_admin ? 'inline-block' : 'none';
-  /* 「📝 记录」只在管理员可见，并在进站时挂上待处理数量 */
+  /* 「📝 记录」只在管理员可见；notes.js 不在首屏加载，点开或进站时才拉（普通用户永远不拉） */
   document.querySelectorAll('.noteBtn').forEach(b=>{
     b.style.display = me.is_admin ? 'inline-block' : 'none';
+    if(!me.is_admin) return;
+    b.onclick = async (e)=>{
+      e.preventDefault();
+      try{
+        await ensurePageScripts(['/js/notes.js']);
+        if(typeof openNoteModal === 'function') openNoteModal();
+      }catch(err){ console.warn('[notes] load failed', err); }
+    };
   });
-  if(me.is_admin && typeof loadNoteBadge === 'function') loadNoteBadge();
+  if(me.is_admin) ensurePageScripts(['/js/notes.js'])
+    .then(()=>{ if(typeof loadNoteBadge === 'function') loadNoteBadge(); })
+    .catch(()=>{});
   // 排名缓存过期就后台更新（不阻塞界面）
   ['accuracy','count'].forEach(s=>{
     const c = rankCache[s];
@@ -104,8 +114,8 @@ function renderRank(){
   const box = $('#rankCard');
   box.innerHTML = `<h2 style="font-size:14px;display:flex;align-items:center;gap:6px">用户排名
       <span style="margin-left:auto;display:flex;gap:4px">
-        <button class="qbtn" data-sort="accuracy" style="${rankSort==='accuracy'?'border-color:var(--acc);color:#cfe0ff':''}">已答正确率</button>
-        <button class="qbtn" data-sort="count" style="${rankSort==='count'?'border-color:var(--acc);color:#cfe0ff':''}">做题量</button>
+        <button class="qbtn" data-sort="accuracy" style="${rankSort==='accuracy'?'border-color:var(--acc);color:#cfe0ff':''}">近 200 场正确率</button>
+        <button class="qbtn" data-sort="count" style="${rankSort==='count'?'border-color:var(--acc);color:#cfe0ff':''}">题量</button>
       </span></h2>`;
   const rows = rankRowsOf(rankSort);
   const wrap = document.createElement('div');
@@ -114,9 +124,10 @@ function renderRank(){
   }else{
     rows.forEach((r,i)=>{
       const d = document.createElement('div');
-      d.className = 'rankrow' + (r.username === me.username ? ' me' : '');
+      const imMe = r.mine !== undefined ? r.mine : (r.username === me.username);
+      d.className = 'rankrow' + (imMe ? ' me' : '');
       d.innerHTML = `<span class="rankno">${i+1}</span>
-        <span class="rankname">${esc(r.username)}${r.is_admin?' ⚙':''}</span>
+        <span class="rankname">${esc(r.name || r.username || '')}${r.is_admin?' ⚙':''}</span>
         <span class="rankval">${rankSort==='count' ? (r.answered||0)+' 题' : (r.accuracy||0)+'%'}</span>`;
       wrap.appendChild(d);
     });

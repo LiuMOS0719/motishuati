@@ -272,6 +272,34 @@ def stats_from_state(raw):
     return sessions, answered, right
 
 
+def recent_stats(raw, limit=200):
+    """最近 N 场练习的作答统计（按 ts 取最后 N 场）"""
+    try:
+        st = json.loads(raw) if raw else {}
+    except Exception:
+        st = {}
+    ss = sorted((st.get('sessions') or []), key=lambda s: s.get('ts') or 0)[-limit:]
+    answered = right = 0
+    for s in ss:
+        for it in (s.get('items') or []):
+            answered += 1
+            if it.get('correct'):
+                right += 1
+    return len(ss), answered, right
+
+
+def mask_name(name):
+    """排行榜匿名：liumos → liu***s，test1 → tes***1，123 → 12***3"""
+    n = str(name or '')
+    if not n:
+        return '***'
+    if len(n) <= 2:
+        return n[:1] + '***'
+    if len(n) <= 4:
+        return n[:2] + '***' + n[-1]
+    return n[:3] + '***' + n[-1]
+
+
 def user_stats(uid):
     con = db()
     u = con.execute('SELECT username,is_admin,quota FROM users WHERE id=?', (uid,)).fetchone()
@@ -300,18 +328,27 @@ def user_stats(uid):
     }
 
 
-def leaderboard(sort='accuracy'):
+def leaderboard(sort='accuracy', viewer_is_admin=False, viewer_name=''):
+    """排行榜：正确率用「最近 200 场」口径；题量用累计作答次数；
+    做题量 < 20 的不参与排名；普通用户看到匿名名，管理员看到真名。"""
     con = db()
     users = con.execute('SELECT id, username, is_admin, quota, created_at FROM users').fetchall()
     rows = []
     for u in users:
         st = con.execute('SELECT state_json FROM user_state WHERE user_id=?', (u['id'],)).fetchone()
-        sessions, answered, right = stats_from_state(st['state_json'] if st else '')
+        raw = st['state_json'] if st else ''
+        sessions, answered, right = stats_from_state(raw)
+        if answered < 20:                 # 刷题量太少的不进榜
+            continue
+        r_sess, r_ans, r_right = recent_stats(raw, 200)
         ag = con.execute('''SELECT COALESCE(SUM(cnt),0) sm, COALESCE(MAX(cnt),0) mx
                             FROM ask_usage WHERE user_id=?''', (u['id'],)).fetchone()
-        rows.append({'username': u['username'], 'is_admin': u['is_admin'], 'quota': u['quota'],
+        rows.append({'name': u['username'] if viewer_is_admin else mask_name(u['username']),
+                     'mine': (u['username'] == viewer_name),
+                     'is_admin': u['is_admin'], 'quota': u['quota'],
                      'sessions': sessions, 'answered': answered, 'right': right,
-                     'accuracy': round(right / answered * 100, 1) if answered else 0,
+                     'accuracy': round(r_right / r_ans * 100, 1) if r_ans else 0,
+                     'recent_sessions': r_sess, 'recent_answered': r_ans,
                      'ai_ask_total': ag['sm'], 'ai_max_per_question': ag['mx']})
     con.close()
     if sort == 'count':
@@ -937,7 +974,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 sort = 'count'
             elif 'sort=sessions' in self.path:
                 sort = 'sessions'
-            self._send(200, {'ok': True, 'sort': sort, 'rows': leaderboard(sort)})
+            self._send(200, {'ok': True, 'sort': sort,
+                             'rows': leaderboard(sort, self._is_admin(u[0]), u[1])})
             return
         if path == '/api/admin/deepseek-balance':
             u = auth_of(self)

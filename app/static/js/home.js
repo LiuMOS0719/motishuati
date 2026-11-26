@@ -380,13 +380,23 @@ function weightedSample(pool, n){
   return out;
 }
 
+/* 顺序练习：随机抽 N 题，再按原卷顺序排列（题池比题量多时，后面的题也有机会轮到） */
+function sampleOrdered(pool, n){
+  if(n >= pool.length) return pool.slice();
+  const idx = pool.map((_, i)=>i);
+  for(let i = idx.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  return idx.slice(0, n).sort((a, b)=>a - b).map(i=>pool[i]);
+}
 async function startSession(srcs, mode, n){
   let pool = poolFor(srcs);
   if(!pool.length){ alert('这个来源组合没有题目'); return; }
   // 选的档位大于题池时，按题池数量出题
   const cnt = Math.min(Number(n) || 40, 100, pool.length);
-  // 随机练习按「做过次数」加权抽样；顺序练习保持原卷顺序
-  const picked = mode==='random' ? weightedSample(pool, cnt) : pool.slice(0, cnt);
+  // 随机练习按「做过次数」加权抽样；顺序练习随机抽题但保持原卷顺序
+  const picked = mode==='random' ? weightedSample(pool, cnt) : sampleOrdered(pool, cnt);
   // 答案乱序：先确保题目正文已加载，再为每题生成固定的一份乱序表
   let perms = null;
   if(state.optOrder === 'shuffle'){

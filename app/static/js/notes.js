@@ -140,8 +140,4 @@ $('#noteText').addEventListener('keydown', e=>{
 $('#noteShowDone').onchange = ()=>renderNotes();
 $('#noteClose').onclick = ()=>$('#noteModal').classList.remove('open');
 $('#noteModal').onclick = e=>{ if(e.target.id === 'noteModal') $('#noteModal').classList.remove('open'); };
-/* 三个页头的按钮共用这一个入口 */
-document.addEventListener('click', e=>{
-  const b = e.target.closest && e.target.closest('.noteBtn');
-  if(b){ e.preventDefault(); openNoteModal(); }
-});
+/* noteBtn 的入口在 account.js 里绑定（本文件改懒加载，加载后由 account.js 调 openNoteModal） */

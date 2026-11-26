@@ -83,12 +83,14 @@ function srcLabelOf(s, brief){
 }
 
 function wrongPool(){
-  /* 遍历历史场次，答错加入、答对移除，得到当前错题集 */
-  const wrong = new Set();
-  sessions.slice().sort((a,b)=>a.ts-b.ts).forEach(s=>{
-    (s.items||[]).forEach(it=>{ it.correct ? wrong.delete(it.qid) : wrong.add(it.qid); });
-  });
-  return [...wrong];
+  /* 错题本 = 做过的题里「还没掌握」的（2026-11-26 改规则）：
+     答错就进本；答对但权重仍 < MASTERY_MIN（70）留在本里；到 70 才移出。
+     答对一次不再直接移出，避免「蒙对一次就漏掉薄弱题」。 */
+  const seen = new Set();
+  sessions.forEach(s=>(s.items||[]).forEach(it=>seen.add(it.qid)));
+  const w = (typeof qWeights === 'function') ? qWeights() : {};
+  const min = (typeof MASTERY_MIN === 'number') ? MASTERY_MIN : 70;
+  return [...seen].filter(qid => (typeof qWeightOf === 'function' ? qWeightOf(w, qid) : 0) < min);
 }
 function refNo(q, paper){
   const r = (q.refs || []).find(x=>x.indexOf(paper+'-')===0);
