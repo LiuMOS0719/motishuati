@@ -332,6 +332,7 @@ function onAuthExpired(){
    例外：连对 3 次直接算 100（翻身），连错 2 次直接算 0（打回）。
    没做过的题没有记录 → 权重 0（最优先抽到）。 */
 const QW_WINDOW = 5;
+const MASTERY_MIN = 70;      // 单题权重 ≥ 这个值算「已掌握」（2026-11-26 用户要求 70% 以上）
 function qWeights(){
   const hist = {};
   sessions.slice().sort((a,b)=>a.ts-b.ts).forEach(se=>{
@@ -431,8 +432,8 @@ function renderChapters(){
     const name = c.full || ('第 ' + n + ' 章');
     const pool = allQ.filter(q=>chapterKey(q) === n);
     const done = pool.filter(q=>latest[q.id] !== undefined);
-    // 单题是否掌握：权重（正确率）> 75
-    const mq = done.filter(q=>qWeightOf(w, q.id) > 75);
+    // 单题是否掌握：权重（正确率）≥ 70（2026-11-26 由 >75 调整）
+    const mq = done.filter(q=>qWeightOf(w, q.id) >= MASTERY_MIN);
     const wq = done.length - mq.length;
     const acc = done.length ? Math.round(mq.length/done.length*100) : 0;   // 掌握率
     // 三段式：绿=已掌握、红=未掌握、灰=还没做
