@@ -581,6 +581,28 @@ def build_review_messages(payload):
         lines.append("【错题清单】\n" + '\n'.join(details))
     else:
         lines.append("【错题清单】无（全部答对或尚未作答）")
+    # 勾选「引用历史做题数据」时，附上该账号全部场次的累计表现
+    href = payload.get('history_ref') or None
+    if isinstance(href, dict) and (href.get('answered') or 0) > 0:
+        hs = int(href.get('answered') or 0)
+        hr = int(href.get('right') or 0)
+        n_sess = int(href.get('sessions') or 0)
+        line = (f"【历史累计数据（该账号全部 {n_sess} 场练习，同一道题在不同场次重复作答分别计数）】"
+                f"累计作答 {hs} 题，答对 {hr} 题，累计正确率 {hr / hs * 100:.1f}%。")
+        rows = []
+        for c in (href.get('chapters') or []):
+            k = str(c.get('k') or '?')
+            d = int(c.get('done') or 0)
+            rt = int(c.get('right') or 0)
+            if d:
+                rows.append((rt / d, chapter_name(bank, k) or ('第' + k + '章'), rt, d))
+        if rows:
+            rows.sort(key=lambda x: x[0])
+            line += "各章累计正确率（由低到高）：" + '；'.join(
+                f"{nm}（{rt}/{d}，{acc * 100:.0f}%）" for acc, nm, rt, d in rows) + "。"
+        line += ("请结合【本次表现】与【历史累计】给出评价：点出长期薄弱的章节与反复出错的考点，"
+                 "并说明本次相比历史整体是进步还是退步。")
+        lines.append(line)
     user = '\n'.join(lines) + "\n\n请按前置要求给出整体评价与复习建议。"
     msgs = [{'role': 'system', 'content': base_ctx},
             {'role': 'user', 'content': user}]

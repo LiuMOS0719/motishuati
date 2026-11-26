@@ -11,9 +11,52 @@ function curSid(){
   return '';
 }
 
+/* ---------- 轻量 LaTeX：常见 CTFL 公式够用，零外部依赖 ---------- */
+const TEX_SYM = {
+  '\\times':'×', '\\div':'÷', '\\cdot':'·', '\\pm':'±', '\\approx':'≈', '\\neq':'≠', '\\ne':'≠',
+  '\\leq':'≤', '\\le':'≤', '\\geq':'≥', '\\ge':'≥', '\\infty':'∞', '\\sum':'∑', '\\prod':'∏',
+  '\\rightarrow':'→', '\\to':'→', '\\Rightarrow':'⇒', '\\leftarrow':'←', '\\%':'%',
+  '\\{':'{', '\\}':'}', '\\,':' ', '\\;':' ', '\\:':' ', '\\!':'', '\\quad':' ', '\\qquad':'  ',
+  '\\left':'', '\\right':'', '\\displaystyle':'', '\\ln':'ln', '\\log':'log', '\\max':'max', '\\min':'min'
+};
+function texToHtml(src){
+  let s = String(src == null ? '' : src);
+  // 文本类命令 → 普通正文字体
+  s = s.replace(/\\(?:text|textrm|mathrm|mathbf|textbf|textit|operatorname)\s*\{([^{}]*)\}/g,
+    (m, t)=>'<span class="tex-txt">' + t + '</span>');
+  // 分数（允许嵌套，最多剥 8 层）
+  for(let i = 0; i < 8 && /\\[dt]?frac\s*\{/.test(s); i++){
+    s = s.replace(/\\[dt]?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g,
+      (m, a, b)=>'<span class="tex-frac"><span class="tex-num">' + a + '</span>' +
+                 '<span class="tex-den">' + b + '</span></span>');
+  }
+  // 根号
+  s = s.replace(/\\sqrt\s*\{([^{}]*)\}/g, '√<span class="tex-sqrt">$1</span>');
+  // 上下标
+  s = s.replace(/\^\{([^{}]*)\}/g, '<sup>$1</sup>').replace(/\^([A-Za-z0-9])/g, '<sup>$1</sup>');
+  s = s.replace(/_\{([^{}]*)\}/g, '<sub>$1</sub>').replace(/_([A-Za-z0-9])/g, '<sub>$1</sub>');
+  // 剩余命令与符号
+  s = s.replace(/\\[a-zA-Z]+|\\[%{},;!:]/g, m=>(TEX_SYM[m] !== undefined ? TEX_SYM[m] : m.slice(1)));
+  s = s.replace(/[{}]/g, '').replace(/\\\\/g, '<br>').replace(/&amp;/g, '&');
+  return s;
+}
+/* 把 \[...\] / $$...$$ / \(...\) 挖出来做成占位符，避免被 markdown 的 * _ 规则拆坏 */
+function texExtract(s){
+  const store = [];
+  s = s.replace(/\\\[([\s\S]+?)\\\]|\$\$([\s\S]+?)\$\$|\\\(([\s\S]+?)\\\)/g, (m, a, b, c)=>{
+    const display = (a !== undefined) || (b !== undefined);
+    store.push('<span class="tex' + (display ? ' tex-block' : '') + '">' +
+               texToHtml(a !== undefined ? a : (b !== undefined ? b : c)) + '</span>');
+    return '\u0001T' + (store.length - 1) + '\u0001';
+  });
+  return { s, store };
+}
+
 /* ---------- 轻量 markdown：先转义再渲染，防止 AI 输出里的标签被执行 ---------- */
 function mdSafe(text){
   let s = esc(String(text == null ? '' : text));
+  const tx = texExtract(s);
+  s = tx.s;
   // 代码块
   s = s.replace(/```([\s\S]*?)```/g, (m,p)=>'<pre>'+p.replace(/^\n+|\n+$/g,'')+'</pre>');
   s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
@@ -30,12 +73,16 @@ function mdSafe(text){
     return '<ul>'+items+'</ul>';
   });
   // 有序列表
-  s = s.replace(/(?:^|\n)((?:\d+[.)]\s+[^\n]+(?:\n|$))+)/g, (m, blk)=>{
+  s = s.replace(/(?:^|\n)((?:[0-9]+[.)]\s+[^\n]+(?:\n|$))+)/g, (m, blk)=>{
     const items = blk.trim().split('\n').map(l=>'<li>'+l.replace(/^\d+[.)]\s+/,'')+'</li>').join('');
     return '<ol>'+items+'</ol>';
   });
   // 剩余换行（列表/代码块内部已吃掉）
   s = s.replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>');
+  // 还原公式
+  s = s.replace(/\u0001T(\d+)\u0001/g, (m, i)=>tx.store[+i] || '');
+  // 裸公式兜底：没有 \[..\] / \(\) 定界时，也把 \frac \times \sqrt 之类渲染出来
+  if(/\\[a-zA-Z]{2,}/.test(s)) s = texToHtml(s);
   return s;
 }
 /* 追加一条 AI 消息：带「AI 生成」标识 + markdown 渲染 */

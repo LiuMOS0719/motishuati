@@ -28,7 +28,6 @@ $('#lgLogin').onclick = ()=>doAuth(false);
 $('#lgReg').onclick = ()=>doAuth(true);
 $('#lgPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doAuth(false); });
 $('#logoutBtn').onclick = async ()=>{
-  if(!confirm('退出登录？（练习记录在账号里，不会丢）')) return;
   try{ await fetch('/api/logout',{method:'POST', headers:{'X-Auth-Token':authToken}}); }catch(e){}
   authToken = '';
   localStorage.removeItem('moti_token');

@@ -106,7 +106,6 @@ function renderNotes(openCount){
     bDel.className = 'btn ghost small';
     bDel.textContent = '删除';
     bDel.onclick = async ()=>{
-      if(!confirm(`删除第 ${n.id} 条记录？`)) return;
       bDel.disabled = true;
       await noteApi({action:'del', id:n.id});
       loadNotes();

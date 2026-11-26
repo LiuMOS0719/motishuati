@@ -101,8 +101,6 @@ $('#cardBtn').onclick = ()=>document.getElementById('qcard').classList.toggle('m
 /* 退出不再弹原生确认：进度已存进历史，主页直接能「继续」，误触也回得去 */
 $('#quitBtn').onclick = ()=>{ commitSession(false); showPage('pgHome'); renderHome(); };
 $('#finishBtn').onclick = async ()=>{
-  const unanswered = cur.qids.length - cur.items.length;
-  if(unanswered>0 && !confirm(`还有 ${unanswered} 题没作答，确定结束吗？`)) return;
   commitSession(true);
   await ensurePageScripts(['/js/ai.js','/js/result.js']);
   openResult(cur.id);

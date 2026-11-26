@@ -82,6 +82,27 @@ function renderReviewBox(){
     }
   });
 }
+/* 历史累计：本账号全部场次按章节汇总（勾选「引用历史做题数据」时传给后端） */
+function historyRef(){
+  const byCh = {};
+  let answered = 0, right = 0, sess = 0;
+  (sessions || []).forEach(s=>{
+    if(!s.items || !s.items.length) return;
+    sess++;
+    s.items.forEach(i=>{
+      const q = QS[i.qid]; if(!q) return;
+      const k = String(q.chapter || (typeof chapterKey === 'function' ? chapterKey(q) : '') || '?');
+      if(!byCh[k]) byCh[k] = {done:0, right:0};
+      byCh[k].done++;
+      if(i.correct) byCh[k].right++;
+      answered++;
+      if(i.correct) right++;
+    });
+  });
+  return {sessions: sess, answered, right,
+    chapters: Object.keys(byCh).map(k=>({k, done: byCh[k].done, right: byCh[k].right}))};
+}
+function wantHist(){ const el = $('#revUseHist'); return !!(el && el.checked); }
 async function generateReview(){
   const s = curResult;
   const ans = s.items.length;
@@ -95,7 +116,8 @@ async function generateReview(){
     const hist = (s.review||[]).slice(-8);
     const r = await fetch('/api/review',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({bank: state.curBank, model: aiModel, stats:{total:s.qids.length, answered:ans, right, wrong:ans-right,
-        accuracy:+(right/ans*100).toFixed(1)}, wrong, chosen, history: hist})}).then(x=>x.json());
+        accuracy:+(right/ans*100).toFixed(1)}, wrong, chosen, history: hist,
+        history_ref: wantHist() ? historyRef() : null})}).then(x=>x.json());
     if(r.ok){
       s.review = s.review || [];
       s.review.push({role:'ai', content:r.answer});
@@ -121,7 +143,8 @@ $('#reviewSend').onclick = async ()=>{
       accuracy:+(right/ans*100).toFixed(1)},
       wrong: s.items.filter(i=>!i.correct).map(i=>i.qid),
       chosen: Object.fromEntries(s.items.map(i=>[i.qid,i.chosen])),
-      history: s.review.slice(-8)})}).then(x=>x.json());
+      history: s.review.slice(-8),
+      history_ref: wantHist() ? historyRef() : null})}).then(x=>x.json());
   if(r.ok){
     s.review.push({role:'ai', content:r.answer});
     const i = sessions.findIndex(x=>x.id===s.id); if(i>=0) sessions[i]=JSON.parse(JSON.stringify(s));

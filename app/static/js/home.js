@@ -115,10 +115,29 @@ async function switchBank(id){
   renderSourceOptions(); refreshPool(); renderChapters(); renderBankPicker();
 }
 
-function grpBlock(title, items){
+function grpBlock(title, items, opts){
+  opts = opts || {};
   const d = document.createElement('div');
   d.className = 'msel-grp';
-  d.innerHTML = `<div class="msel-h">${title}</div>`;
+  const h = document.createElement('div');
+  h.className = 'msel-h';
+  const tt = document.createElement('span');
+  tt.textContent = title;
+  h.appendChild(tt);
+  if(opts.ops){
+    const ha = document.createElement('span');
+    ha.className = 'msel-ha';
+    [['全选', true], ['清空', false]].forEach(([txt, on])=>{
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'msel-mini';
+      b.textContent = txt;
+      b.onclick = e=>{ e.stopPropagation(); setSources(items.filter(it=>!it.dis).map(it=>it.src), on); };
+      ha.appendChild(b);
+    });
+    h.appendChild(ha);
+  }
+  d.appendChild(h);
   items.forEach(it=>{
     const lab = document.createElement('label');
     lab.className = 'msel-item' + (it.dis ? ' dis' : '');
@@ -129,6 +148,16 @@ function grpBlock(title, items){
     d.appendChild(lab);
   });
   return d;
+}
+/* 分组批量勾选：全选时清掉错题本（互斥），清空只清本组 */
+function setSources(srcs, on){
+  if(on){
+    srcs.forEach(s=>state.sources.add(s));
+    state.sources.delete('WRONG');
+  }else{
+    srcs.forEach(s=>state.sources.delete(s));
+  }
+  syncSrcChecks(); refreshPool();
 }
 function renderSourceOptions(){
   const box = $('#mselGroups');
@@ -143,13 +172,13 @@ function renderSourceOptions(){
   })).concat(extra.map(p=>({
     src: 'EXTRA', title: p.label, n: allQ.filter(q=>q.is_extra).length
   })));
-  if(items.length) box.appendChild(grpBlock('按整卷（可多选）', items));
+  if(items.length) box.appendChild(grpBlock('按整卷（可多选）', items, {ops:true}));
   const chs = bankChapters();
   if(chs.length){
     box.appendChild(grpBlock('按章节（可多选）', chs.map(c=>({
       src: 'CH' + c.key, title: c.full || ('第 ' + c.key + ' 章'),
       n: allQ.filter(q=>chapterKey(q) === String(c.key)).length
-    }))));
+    })), {ops:true}));
   }
   const wn = wrongPool().length;
   box.appendChild(grpBlock('错题本（单选，与上面互斥）',
@@ -250,14 +279,7 @@ document.addEventListener('click', e=>{
   const m = $('#msel');
   if(m && !m.contains(e.target)) m.classList.remove('open');
 });
-$('#selAllPapers').onclick = ()=>{
-  state.sources.clear();
-  ['A','B','C','D','EXTRA'].forEach(s=>state.sources.add(s));
-  syncSrcChecks(); refreshPool();
-};
-$('#selNone').onclick = ()=>{
-  state.sources.clear(); syncSrcChecks(); refreshPool();
-};
+/* #11 全选/清空已下放到各分组标题右侧（见 grpBlock opts.ops） */
 $('#fCount').oninput = refreshPool;
 document.querySelectorAll('#fMode button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#fMode button').forEach(x=>x.classList.remove('on'));
@@ -428,8 +450,7 @@ function renderChapters(){
     row.onclick = ()=>{
       if(!pool.length){ alert('这一章暂时没有题目'); return; }
       const mode = document.querySelector('#fMode button.on').dataset.mode;
-      if(confirm(`开始练习「${name}」？共 ${pool.length} 题，本次取 ${Math.min(40,pool.length)} 题。`))
-        startSession(['CH'+n], mode, Math.min(40, pool.length));
+      startSession(['CH'+n], mode, Math.min(40, pool.length));
     };
     box.appendChild(row);
   });
