@@ -304,3 +304,8 @@ table.qtab tr.act th,table.qtab th.act{background:#20262e;color:#8b95a3;font-wei
 
 /* 按原扫描件显示的图表（C-23 / C-32） */
 .figimg{display:block;max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line);background:#fff}
+
+/* 原题里的等宽日志块（B-38） */
+.logbox{white-space:pre;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  font-size:12.5px;line-height:1.95;border:1px solid var(--line);border-radius:10px;background:var(--panel2);
+  padding:12px 14px;margin:12px 0;color:#c7d0db}
