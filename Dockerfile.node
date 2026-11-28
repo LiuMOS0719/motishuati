@@ -1,4 +1,21 @@
-# 墨题 Node 服务（与旧 Python 站并行，只监听 8091）
+# 墨题：前端构建 + Node 服务，同一个镜像、同一个容器、只暴露 8091
+# 阶段一：构建前端（Vite）
+FROM ubuntu:24.04 AS front
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PATH=/opt/node/bin:$PATH
+
+ADD build/node.tgz /opt/
+RUN mv /opt/node-v20.18.1-linux-arm64 /opt/node && node -v
+
+WORKDIR /app
+COPY front/package.json front/package-lock.json* ./
+RUN npm install --no-audit --no-fund --registry=https://registry.npmmirror.com
+
+COPY front/ ./
+RUN npx vite build && ls -la dist
+
+# 阶段二：运行时（Node 自己发静态 + API，不再单独跑 nginx）
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -6,26 +23,25 @@ ENV DEBIAN_FRONTEND=noninteractive \
     NODE_ENV=production \
     PATH=/opt/node/bin:$PATH
 
-# Node 20.18.1 arm64（构建上下文里的离线包，不依赖容器内网络）
 ADD build/node.tgz /opt/
 RUN mv /opt/node-v20.18.1-linux-arm64 /opt/node && node -v && npm -v
 
 WORKDIR /app
 
-# 依赖层单独缓存：只有 package.json 变了才重装
 COPY server/package.json ./server/
 RUN cd server && npm install --omit=dev --no-audit --no-fund \
       --registry=https://registry.npmmirror.com && npm cache clean --force
 
 COPY server/ ./server/
-COPY app/static/ ./public/
+COPY --from=front /app/dist ./public
+COPY data/img ./data/img
 
 RUN useradd -r -u 10001 -s /sbin/nologin moti \
  && chown -R moti:moti /app
 USER moti
 
 EXPOSE 8091
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:8091/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:8091/api/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"
 
 CMD ["node", "server/index.js"]

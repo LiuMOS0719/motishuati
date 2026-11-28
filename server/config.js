@@ -11,6 +11,7 @@ const req = (k) => {
 export const config = {
   port: Number(process.env.PORT || 8091),
   staticDir: process.env.STATIC_DIR || '/app/public',
+  imgDir: process.env.IMG_DIR || '/app/data/img',
   db: {
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT || 3306),

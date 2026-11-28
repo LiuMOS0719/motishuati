@@ -1,0 +1,10 @@
+/* 17 个设计变量：与 12 张原型完全一致，不改名、不改值 */
+:root{
+  --bg:#0a0c11; --surface:#12151c; --surface2:#171b23; --surface3:#1d222c;
+  --border:#232935; --border2:#2d3542;
+  --text:#e7eaf0; --muted:#8b94a5; --muted2:#697182;
+  --primary:#4c8dff; --primary-soft:rgba(76,141,255,.13);
+  --green:#33c98a; --green-soft:rgba(51,201,138,.12);
+  --red:#ef5f6b; --red-soft:rgba(239,95,107,.12);
+  --amber:#e5a33c; --amber-soft:rgba(229,163,60,.12);
+}

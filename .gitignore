@@ -29,4 +29,7 @@ data/notice.json
 data/questions.json
 data/quiz.db
 data/quiz.db-*
+front/.vite/
+front/dist/
+front/node_modules/
 server/node_modules/

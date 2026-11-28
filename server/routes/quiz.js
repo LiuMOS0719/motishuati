@@ -270,7 +270,9 @@ async function listSessions({ ctx, res, url }) {
 
 async function getSession({ ctx, res, params }) {
   const s = await one(
-    'SELECT sid, ext_id, ts, source, sources, mode, qcount, answered, correct, score, finished FROM quiz_sessions WHERE user_id=? AND ext_id=?',
+    `SELECT sid, ext_id, ts, source, sources, mode, qcount, answered, correct, score, finished,
+            started_at, finished_at
+     FROM quiz_sessions WHERE user_id=? AND ext_id=?`,
     [ctx.user.id, params.sid]);
   if (!s) return fail(res, 404, 'NOT_FOUND', '没有这场练习');
   const items = await query(

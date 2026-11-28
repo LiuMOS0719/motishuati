@@ -1,7 +1,11 @@
-data/
 build/node-v20.18.1-linux-arm64/
 db/
 .git/
-*.bak-*
 node_modules/
+front/node_modules/
+front/dist/
+*.bak-*
 README.md
+data/*
+!data/img/
+!data/img/**

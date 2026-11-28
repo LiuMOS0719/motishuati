@@ -53,6 +53,10 @@ async function handle(req, res) {
   const m = router.match(req.method, pathname);
   if (!m) {
     if (pathname.startsWith('/api/')) return fail(res, 404, 'NOT_FOUND', '接口不存在');
+    // 题目插图走独立目录（题库配图可单独更新，不必重建前端）
+    if (pathname.startsWith('/img/')) {
+      return serveStatic(config.imgDir, req, res, pathname.slice(4));
+    }
     if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(config.staticDir, req, res, pathname);
     return fail(res, 405, 'METHOD_NOT_ALLOWED', '不支持的方法');
   }

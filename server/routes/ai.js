@@ -87,14 +87,24 @@ async function balance(uid) {
 
 // 问题相关性预检（用免费的 GLM，失败就放行）
 async function checkRelevance(qid, question) {
+  // 默认关闭：GLM-flash 对「这道题为什么选 C」这类指代性提问判为无关，
+  // 误伤远大于收益（多一次调用还挡正常提问）。要开启设 AI_RELEVANCE=1
+  if (process.env.AI_RELEVANCE !== '1') return true;
   if (!config.zai.key) return true;
   const q = await one('SELECT stem FROM questions WHERE id=?', [qid]);
   if (!q) return true;
-  const sys = '你是助教。判断学生的问题是否与给定题目相关。只回答“是”或“否”，不要解释。';
-  const user = `题目：${String(q.stem).slice(0, 600)}\n\n学生问题：${String(question).slice(0, 300)}`;
+  const sys = [
+    '你是 ISTQB 助教。学生在看一道题，常用「这道题」「选 C」「错在哪」「为什么」这类指代说法。',
+    '只要问题是在问这道题本身、它的选项、答案或相关知识点，就算相关。',
+    '只有闲聊、别的学科、让你写代码、跟题目完全无关的事才算无关。',
+    '只输出 YES 或 NO，不要解释。',
+  ].join('');
+  const user = `题目：${String(q.stem).slice(0, 800)}\n\n学生问题：${String(question).slice(0, 300)}`;
   const r = await callGLM([{ role: 'system', content: sys }, { role: 'user', content: user }], { maxTokens: 8 });
-  if (!r.ok) return true;
-  return !/^否/.test(String(r.answer || '').trim());
+  if (!r.ok) return true;                       // 预检失败一律放行，别误伤
+  const ans = String(r.answer || '').trim().toUpperCase();
+  if (!ans) return true;
+  return !/^NO\b/.test(ans) && !/^否/.test(ans);
 }
 
 function buildAskMessages(q, question, answered, history, perm) {
