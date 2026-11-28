@@ -24,6 +24,8 @@ export default defineConfig({
           if (!id.includes('node_modules')) return
           if (id.includes('/element-plus/')) return 'element'
           if (id.includes('/@element-plus/')) return 'el-icons'
+          // @vueuse 是 element-plus 的传递依赖，跟它同组，别单独计进首屏
+          if (id.includes('/@vueuse/')) return 'element'
           // vue 内核连同 @vue/* 一起归组，别让 shared 单独落进 vendor
           if (id.includes('/@vue/') || id.includes('/vue/') || id.includes('/vue-router/') || id.includes('/pinia/')) {
             return 'vue-core'
