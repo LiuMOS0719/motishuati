@@ -90,6 +90,8 @@ async function loadUserPanels(){
   if(me.is_admin) ensurePageScripts(['/js/notes.js'])
     .then(()=>{ if(typeof loadNoteBadge === 'function') loadNoteBadge(); })
     .catch(()=>{});
+  if(me.is_admin) ensurePageScripts(['/js/admin.js']).catch(()=>{});
+  if(typeof renderNoticeBar === 'function') renderNoticeBar();
   // 排名缓存过期就后台更新（不阻塞界面）
   ['accuracy','count'].forEach(s=>{
     const c = rankCache[s];
@@ -187,7 +189,12 @@ async function loadAdmin(){
     box.appendChild(d);
   });
 }
-$('#adminBtn').onclick = ()=>{ $('#adminModal').classList.add('open'); loadAdmin(); };
+$('#adminBtn').onclick = async ()=>{
+  try{
+    await ensurePageScripts(['/js/admin.js']);
+    if(typeof openAdminPage === 'function') openAdminPage();
+  }catch(e){ alert('管理页加载失败，刷新后再试'); }
+};
 $('#adminClose').onclick = ()=>$('#adminModal').classList.remove('open');
 $('#adminModal').onclick = e=>{ if(e.target.id==='adminModal') $('#adminModal').classList.remove('open'); };
 

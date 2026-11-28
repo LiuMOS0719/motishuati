@@ -3,7 +3,7 @@
 """CTFL 刷题服务：题库 API + DeepSeek 答疑/整体评价。
 答题记录与对话全部存在浏览器端（localStorage），服务端不落库答题数据。"""
 import http.server, socketserver, json, os, sqlite3, urllib.request, urllib.error
-import datetime, sys, hashlib, secrets, re, gzip, base64, time
+import datetime, sys, hashlib, secrets, re, gzip, base64, time, shutil
 
 DATA = os.environ.get('DATA_DIR', '/data')
 DB = f'{DATA}/quiz.db'
@@ -298,6 +298,178 @@ def mask_name(name):
     if len(n) <= 4:
         return n[:2] + '***' + n[-1]
     return n[:3] + '***' + n[-1]
+
+
+# ---------------- 管理后台：公告 / 题库编辑 / 备份 ----------------
+import urllib.parse
+
+
+def load_notice():
+    p = f'{DATA}/notice.json'
+    try:
+        d = json.load(open(p, encoding='utf-8'))
+        if isinstance(d, dict):
+            return {'text': str(d.get('text') or ''),
+                    'active': bool(d.get('active')),
+                    'updated_at': d.get('updated_at') or ''}
+    except Exception:
+        pass
+    return {'text': '', 'active': False, 'updated_at': ''}
+
+
+def save_notice(text, active):
+    p = f'{DATA}/notice.json'
+    d = {'text': (text or '').strip(), 'active': bool(active),
+         'updated_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    tmp = p + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(d, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, p)
+    return d
+
+
+def backup_file(path, tag=''):
+    """写盘前备份一份，返回备份路径"""
+    ts = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+    b = '%s.bak-%s%s' % (path, ts, ('-' + tag) if tag else '')
+    try:
+        shutil.copyfile(path, b)
+    except Exception:
+        pass
+    return b
+
+
+def reload_bank_data():
+    """questions.json / figures.json 改完后重建题库表（等价于重启时 import.py）"""
+    import runpy
+    runpy.run_path('/app/import.py', run_name='__main__')
+
+
+def admin_overview():
+    con = db()
+    qn = con.execute('SELECT COUNT(*) c FROM questions').fetchone()['c']
+    fn = con.execute('SELECT COUNT(*) c FROM figures').fetchone()['c']
+    un = con.execute('SELECT COUNT(*) c FROM users').fetchone()['c']
+    active = con.execute("SELECT COUNT(*) c FROM users WHERE last_login IS NOT NULL "
+                         "AND last_login >= date('now','-7 day')").fetchone()['c']
+    fd_open = con.execute("SELECT COUNT(*) c FROM feedback WHERE status='open'").fetchone()['c']
+    nt_open = con.execute("SELECT COUNT(*) c FROM admin_notes WHERE status='open'").fetchone()['c']
+    chaps = [{'key': r['chapter'] or '?', 'n': r['n']}
+             for r in con.execute('SELECT chapter, COUNT(*) n FROM questions GROUP BY chapter ORDER BY chapter')]
+    asks = con.execute('SELECT COALESCE(SUM(cnt),0) c FROM ask_usage').fetchone()['c']
+    sess = 0
+    for r in con.execute('SELECT state_json FROM user_state'):
+        try:
+            sess += len((json.loads(r['state_json'] or '{}') or {}).get('sessions') or [])
+        except Exception:
+            pass
+    con.close()
+    return {'questions': qn, 'figures': fn, 'users': un, 'active7d': active,
+            'feedback_open': fd_open, 'notes_open': nt_open, 'chapters': chaps,
+            'ai_asks': asks, 'sessions': sess}
+
+
+def admin_question_row(con, qid):
+    r = con.execute('SELECT * FROM questions WHERE id=?', (qid,)).fetchone()
+    if not r:
+        return None
+    d = dict(r)
+    d['options'] = json.loads(d.pop('options_json', None) or '[]')
+    d['answer'] = json.loads(d.pop('answer_json', None) or '[]')
+    f = con.execute('SELECT kind, html FROM figures WHERE qid=?', (qid,)).fetchone()
+    d['figure'] = dict(f) if f else None
+    return d
+
+
+def save_question_edit(payload):
+    """把单题改动写回 questions.json（带备份 + 校验），然后重建题库表"""
+    qid = str(payload.get('id') or '').strip()
+    if not qid:
+        return {'ok': False, 'error': '缺少题目 id'}
+    p = f'{DATA}/questions.json'
+    data = json.load(open(p, encoding='utf-8'))
+    target = None
+    for q in data:
+        if str(q.get('id')) == qid:
+            target = q
+            break
+    if target is None:
+        return {'ok': False, 'error': '题库里没有这道题：%s' % qid}
+
+    stem = str(payload.get('stem') or '').strip()
+    explain = str(payload.get('explain') or '').strip()
+    options = payload.get('options') or []
+    answer = payload.get('answer') or []
+    if not stem:
+        return {'ok': False, 'error': '题干不能为空'}
+    if not isinstance(options, list) or len(options) < 2:
+        return {'ok': False, 'error': '至少要有两个选项'}
+    clean_opts = []
+    for o in options:
+        k = str((o or {}).get('k') or '').strip().upper()
+        t = str((o or {}).get('t') or '').strip()
+        if not k or not t:
+            return {'ok': False, 'error': '选项缺少字母或内容'}
+        clean_opts.append({'k': k, 't': t})
+    keys = [o['k'] for o in clean_opts]
+    ans = [str(a).strip().upper() for a in answer if str(a).strip()]
+    if not ans:
+        return {'ok': False, 'error': '至少要选一个正确答案'}
+    bad = [a for a in ans if a not in keys]
+    if bad:
+        return {'ok': False, 'error': '正确答案不在选项里：%s' % '、'.join(bad)}
+
+    target['stem'] = stem
+    target['explain'] = explain
+    target['options'] = clean_opts
+    target['answer'] = ans
+    bak = backup_file(p, 'edit-' + re.sub(r'[^A-Za-z0-9_-]', '', qid))
+    tmp = p + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, p)
+    try:
+        reload_bank_data()
+    except Exception as e:
+        return {'ok': False, 'error': '已写入 JSON，但重建题库失败：%s' % e, 'backup': bak}
+    return {'ok': True, 'backup': bak, 'questions': len(data)}
+
+
+def import_bank_json(kind, raw_text):
+    """导入整份 questions.json / figures.json（带校验 + 备份）"""
+    if kind not in ('questions', 'figures'):
+        return {'ok': False, 'error': 'kind 只能是 questions 或 figures'}
+    try:
+        obj = json.loads(raw_text)
+    except Exception as e:
+        return {'ok': False, 'error': 'JSON 解析失败：%s' % e}
+    if kind == 'questions':
+        if not isinstance(obj, list) or not obj:
+            return {'ok': False, 'error': 'questions 必须是非空数组'}
+        bad = [i for i, q in enumerate(obj[:500])
+               if not isinstance(q, dict) or not q.get('id') or not q.get('stem')]
+        if bad:
+            return {'ok': False, 'error': '第 %s 项缺少 id 或 stem' % (bad[0] + 1)}
+        ids = [q.get('id') for q in obj]
+        if len(ids) != len(set(ids)):
+            return {'ok': False, 'error': '题目 id 有重复'}
+    else:
+        if not isinstance(obj, dict):
+            return {'ok': False, 'error': 'figures 必须是 {题目id: {kind, html}} 对象'}
+        for k, v in obj.items():
+            if not isinstance(v, dict) or 'html' not in v:
+                return {'ok': False, 'error': '条目 %s 缺少 html' % k}
+    p = f'{DATA}/{kind}.json'
+    bak = backup_file(p, 'import')
+    tmp = p + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(obj, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, p)
+    try:
+        reload_bank_data()
+    except Exception as e:
+        return {'ok': False, 'error': '已写入 JSON，但重建题库失败：%s' % e, 'backup': bak}
+    return {'ok': True, 'backup': bak, 'count': len(obj)}
 
 
 def user_stats(uid):
@@ -804,7 +976,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return ip
 
     def _send(self, code, body, ctype='application/json; charset=utf-8',
-              cache='no-store', use_etag=True):
+              cache='no-store', use_etag=True, headers=None):
         if isinstance(body, (dict, list)):
             body = json.dumps(body, ensure_ascii=False)
         data = body.encode('utf-8') if isinstance(body, str) else body
@@ -828,6 +1000,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_header('ETag', tag)
         self.send_header('Cache-Control', cache)
         self.send_header('X-Robots-Tag', 'noindex, nofollow, noarchive')
+        for _k, _v in (headers or {}).items():
+            self.send_header(_k, _v)
         self.send_header('Content-Length', str(len(data)))
         self.send_header('Vary', 'Accept-Encoding')
         self.end_headers()
@@ -999,6 +1173,81 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 rows.append(st)
             self._send(200, {'ok': True, 'rows': rows})
             return
+        if path == '/api/notice':
+            self._send(200, {'ok': True, **load_notice()})
+            return
+        if path == '/api/admin/overview':
+            u = auth_of(self)
+            if not u or not self._is_admin(u[0]):
+                self._send(403, {'error': '仅管理员'})
+                return
+            self._send(200, {'ok': True, **admin_overview()})
+            return
+        if path == '/api/admin/questions':
+            u = auth_of(self)
+            if not u or not self._is_admin(u[0]):
+                self._send(403, {'error': '仅管理员'})
+                return
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            kw = (qs.get('q') or [''])[0].strip()
+            ch = (qs.get('chapter') or [''])[0].strip()
+            try:
+                limit = min(int((qs.get('limit') or ['60'])[0] or 60), 300)
+            except Exception:
+                limit = 60
+            sql = ('SELECT id, papers, no, chapter, lo, k_level, substr(stem,1,70) s '
+                   'FROM questions WHERE 1=1')
+            args = []
+            if kw:
+                sql += ' AND (id LIKE ? OR stem LIKE ?)'
+                args += ['%' + kw + '%', '%' + kw + '%']
+            if ch:
+                sql += ' AND chapter=?'
+                args.append(ch)
+            sql += ' ORDER BY id LIMIT ?'
+            args.append(limit)
+            con = db()
+            rows = [dict(r) for r in con.execute(sql, args)]
+            con.close()
+            self._send(200, {'ok': True, 'rows': rows})
+            return
+        if path == '/api/admin/question':
+            u = auth_of(self)
+            if not u or not self._is_admin(u[0]):
+                self._send(403, {'error': '仅管理员'})
+                return
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            qid = (qs.get('qid') or [''])[0].strip()
+            con = db()
+            d = admin_question_row(con, qid)
+            con.close()
+            if not d:
+                self._send(404, {'error': '没有这道题'})
+                return
+            self._send(200, {'ok': True, 'q': d})
+            return
+        if path == '/api/admin/backup':
+            u = auth_of(self)
+            if not u or not self._is_admin(u[0]):
+                self._send(403, {'error': '仅管理员'})
+                return
+            tmp = f'{DATA}/_backup_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.db'
+            try:
+                src_con = db()
+                dst_con = sqlite3.connect(tmp)
+                src_con.backup(dst_con)
+                dst_con.close()
+                src_con.close()
+                blob = open(tmp, 'rb').read()
+            finally:
+                try:
+                    os.remove(tmp)
+                except Exception:
+                    pass
+            name = 'quiz-%s.db' % datetime.datetime.now().strftime('%Y%m%d-%H%M')
+            self._send(200, blob, 'application/octet-stream', use_etag=False,
+                       headers={'Content-Disposition': 'attachment; filename="%s"' % name})
+            return
         if path == '/api/state':
             u = auth_of(self)
             if not u:
@@ -1141,6 +1390,32 @@ class Handler(http.server.BaseHTTPRequestHandler):
             res['quota'] = quota
             res['charged'] = charged
             self._send(200 if res.get('ok') else 502, res)
+            return
+        if path == '/api/admin/question':
+            u = auth_of(self)
+            if not u or not self._is_admin(u[0]):
+                self._send(403, {'error': '仅管理员'})
+                return
+            res = save_question_edit(self._json_body() or {})
+            self._send(200 if res.get('ok') else 400, res)
+            return
+        if path == '/api/admin/bank-import':
+            u = auth_of(self)
+            if not u or not self._is_admin(u[0]):
+                self._send(403, {'error': '仅管理员'})
+                return
+            body = self._json_body() or {}
+            res = import_bank_json(str(body.get('kind') or ''), str(body.get('raw') or ''))
+            self._send(200 if res.get('ok') else 400, res)
+            return
+        if path == '/api/admin/notice':
+            u = auth_of(self)
+            if not u or not self._is_admin(u[0]):
+                self._send(403, {'error': '仅管理员'})
+                return
+            body = self._json_body() or {}
+            d = save_notice(body.get('text'), body.get('active'))
+            self._send(200, {'ok': True, **d})
             return
         if path == '/api/admin/quota':
             u = auth_of(self)

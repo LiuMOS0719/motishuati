@@ -25,3 +25,8 @@ __pycache__/
 Thumbs.db
 .idea/
 .vscode/
+
+# 运行时数据与改库前备份（不进仓库）
+data/notice.json
+*.bak-2*
+app/*.bak*

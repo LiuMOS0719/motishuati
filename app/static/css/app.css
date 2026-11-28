@@ -313,3 +313,50 @@ table.qtab tr.act th,table.qtab th.act{background:#20262e;color:#8b95a3;font-wei
 /* 「字段 | 值」型表（D-38 缺陷报告）：左列窄、内容列自动换行 */
 table.qtab.kvtab td{text-align:left;white-space:normal;vertical-align:top;line-height:1.75}
 table.qtab.kvtab td:first-child{width:96px;color:#8b95a3;white-space:nowrap}
+
+/* ---------- 管理后台 ---------- */
+.admintabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.atab{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:9px;
+  padding:7px 13px;font:inherit;font-size:13px;cursor:pointer}
+.atab:hover{color:var(--txt);border-color:#46515f}
+.atab.on{color:#cfe0ff;border-color:var(--acc);background:rgba(59,130,246,.14)}
+.admcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+.admcard h3{margin:0 0 12px;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.admstats{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;margin-bottom:14px}
+.admstat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px;text-align:center}
+.admstat b{display:block;font-size:22px;color:var(--txt);line-height:1.25}
+.admstat b.warn{color:#fbbf24}
+.admstat span{font-size:11.5px;color:var(--dim)}
+.admrow{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:12.5px}
+.admlbl{width:170px;flex-shrink:0;color:#c7d0db;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admbar{flex:1;height:8px;background:#1b222a;border-radius:99px;overflow:hidden}
+.admbar i{display:block;height:100%;background:linear-gradient(90deg,#3b82f6,#22c55e)}
+.admnum{width:62px;text-align:right;color:var(--dim)}
+.admtblwrap{overflow-x:auto}
+.admtbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.admtbl th,.admtbl td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;white-space:nowrap}
+.admtbl th{color:var(--dim);font-weight:500;font-size:11.5px}
+.admbts{display:flex;gap:4px}
+.admnote{border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin-bottom:9px;background:var(--panel2)}
+.admnote.done{opacity:.55}
+.admnote-h{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:6px;flex-wrap:wrap}
+.admnote-b{font-size:13px;color:#c7d0db;white-space:pre-wrap;line-height:1.7;margin-bottom:8px}
+.admlist{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:10px}
+.admqrow{display:flex;gap:8px;align-items:baseline;padding:8px 11px;border-bottom:1px solid var(--line);
+  cursor:pointer;font-size:12.5px;flex-wrap:wrap}
+.admqrow:hover{background:var(--panel2)}
+.admqrow:last-child{border-bottom:0}
+.admqs{color:#9aa5b1;flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admfl{display:block;margin:12px 0 6px;font-size:12px;color:var(--dim)}
+.admopt{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.admopt b{width:18px;color:var(--acc)}
+.admopt input.opt-text{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+  border-radius:8px;padding:7px 10px;font:inherit;font-size:13px}
+.admfig{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+#admStem,#admExplain,#admNoteText,#admNoticeText{width:100%;background:var(--panel2);border:1px solid var(--line);
+  color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;font-size:13px;line-height:1.7;resize:vertical}
+#noticeBar{display:none;grid-column:1/-1;align-items:center;gap:9px;margin:0 0 12px;padding:10px 14px;
+  border-radius:11px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.35);
+  font-size:13px;color:#cfe0ff}
+#noticeBar .nbtext{flex:1;white-space:pre-wrap}
+#noticeBar .nbclose{background:none;border:0;color:#8b95a3;font-size:17px;cursor:pointer;line-height:1}

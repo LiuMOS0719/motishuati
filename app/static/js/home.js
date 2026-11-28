@@ -591,3 +591,20 @@ $('#fbListModal').onclick = e=>{ if(e.target.id==='fbListModal') $('#fbListModal
 /* 单题预览弹窗关闭 */
 $('#qvClose').onclick = ()=>$('#qviewModal').classList.remove('open');
 $('#qviewModal').onclick = e=>{ if(e.target.id==='qviewModal') $('#qviewModal').classList.remove('open'); };
+
+/* 主页公告条（公告内容由管理页写入，所有用户可见） */
+async function renderNoticeBar(){
+  const bar = $('#noticeBar');
+  if(!bar) return;
+  try{
+    const d = await fetch('/api/notice?v=' + Date.now()).then(x=>x.json());
+    if(d && d.active && (d.text || '').trim()){
+      bar.innerHTML = '<span>📢</span><span class="nbtext">' + esc(d.text) + '</span>' +
+        '<button class="nbclose" title="收起">×</button>';
+      bar.style.display = 'flex';
+      bar.querySelector('.nbclose').onclick = ()=>{ bar.style.display = 'none'; };
+    }else{
+      bar.style.display = 'none';
+    }
+  }catch(e){ bar.style.display = 'none'; }
+}
