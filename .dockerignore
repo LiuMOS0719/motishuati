@@ -1,0 +1,7 @@
+data/
+build/node-v20.18.1-linux-arm64/
+db/
+.git/
+*.bak-*
+node_modules/
+README.md

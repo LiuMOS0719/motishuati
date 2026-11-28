@@ -1,32 +1,32 @@
+
+!.env.ai.example
+!.env.example
+# ===== Python =====
 # ===== 密钥：绝对不能进仓库 =====
+# ===== 系统/编辑器 =====
+# ===== 运行时数据：含用户账号、密码哈希、登录 token，绝不外传 =====
+# ===== 题库正文与配图：ISTQB/CSTQB 版权内容，不随仓库分发 =====
+# 运行时数据与改库前备份（不进仓库）
+*.bak-2*
+*.py[cod]
+.DS_Store
 .env
 .env.*
-!.env.example
-!.env.ai.example
 .env.ai.bak
-
-# ===== 运行时数据：含用户账号、密码哈希、登录 token，绝不外传 =====
-data/quiz.db
-data/quiz.db-*
-data/*.bak
-data/*.bak-*
-
-# ===== 题库正文与配图：ISTQB/CSTQB 版权内容，不随仓库分发 =====
-data/questions.json
-data/figures.json
-data/img/
-
-# ===== Python =====
-__pycache__/
-*.py[cod]
-
-# ===== 系统/编辑器 =====
-.DS_Store
-Thumbs.db
+.env.node
 .idea/
 .vscode/
-
-# 运行时数据与改库前备份（不进仓库）
-data/notice.json
-*.bak-2*
+Thumbs.db
+__pycache__/
 app/*.bak*
+build/node-v20.18.1-linux-arm64/
+build/node.tgz
+data/*.bak
+data/*.bak-*
+data/figures.json
+data/img/
+data/notice.json
+data/questions.json
+data/quiz.db
+data/quiz.db-*
+server/node_modules/

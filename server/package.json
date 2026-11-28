@@ -1,0 +1,14 @@
+{
+  "name": "moti-server",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "mysql2": "3.11.3"
+  },
+  "scripts": {
+    "start": "node index.js"
+  }
+}
