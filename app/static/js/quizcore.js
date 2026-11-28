@@ -83,7 +83,7 @@ function srcLabelOf(s, brief){
 }
 
 function wrongPool(){
-  /* 错题本 = 做过的题里「还没掌握」的（2026-11-26 改规则）：
+  /* 未掌握题集 = 做过的题里「还没掌握」的（2026-11-26 改规则，11-28 改名）：
      答错就进本；答对但权重仍 < MASTERY_MIN（70）留在本里；到 70 才移出。
      答对一次不再直接移出，避免「蒙对一次就漏掉薄弱题」。 */
   const seen = new Set();
@@ -104,14 +104,19 @@ function poolFor(srcs){
   const extra = srcs.includes('EXTRA');
   const chs = srcs.filter(s=>s.indexOf('CH')===0).map(s=>s.slice(2));
   const useWrong = srcs.includes('WRONG');
-  const wrongSet = useWrong ? new Set(wrongPool()) : null;
+  if(useWrong) return wrongPool();     // 未掌握题集：单选，不受卷/章条件影响
+  const paperSide = papers.length > 0 || extra;
+  const chapSide = chs.length > 0;
   let res = allQ.filter(q=>{
-    const pq = q.papers.split(',');
-    if(!q.is_extra && papers.some(p=>pq.includes(p))) return true;
-    if(extra && q.is_extra===1) return true;
-    if(chs.length && chs.includes(chapterKey(q))) return true;
-    if(useWrong && wrongSet.has(q.id)) return true;
-    return false;
+    const pq = (q.papers || '').split(',');
+    /* 卷这一侧：选中的整卷 或 附加题 */
+    const okPaper = !paperSide ? true : (
+      (extra && q.is_extra === 1) || (!q.is_extra && papers.some(p=>pq.includes(p)))
+    );
+    /* 章这一侧：选中的章节 */
+    const okChap = !chapSide ? true : chs.includes(chapterKey(q));
+    /* 两侧都选时取交集（2026-11-28 从并集改为交集）；只选一侧时行为不变 */
+    return okPaper && okChap;
   });
   if(papers.length===1){          // 单卷练习时按该卷原始题号排序（合并题的卷号可能与 id 不同）
     const p = papers[0];

@@ -81,11 +81,11 @@ function refLabel(q){
 }
 
 /* ================= 主页 ================= */
-const SRC_LABEL = {ALL:'全部题目',A:'A 卷',B:'B 卷',C:'C 卷',D:'D 卷',EXTRA:'附加题',WRONG:'错题本',
+const SRC_LABEL = {ALL:'全部题目',A:'A 卷',B:'B 卷',C:'C 卷',D:'D 卷',EXTRA:'附加题',WRONG:'未掌握题集',
   CH1:'第1章 测试基础',CH2:'第2章 贯穿 SDLC 的测试',CH3:'第3章 静态测试',
   CH4:'第4章 测试分析与设计',CH5:'第5章 测试管理与测试活动',CH6:'第6章 测试工具'};
 const SHORT = {A:'A卷',B:'B卷',C:'C卷',D:'D卷',EXTRA:'附加题',
-  CH1:'第1章',CH2:'第2章',CH3:'第3章',CH4:'第4章',CH5:'第5章',CH6:'第6章',WRONG:'错题本'};
+  CH1:'第1章',CH2:'第2章',CH3:'第3章',CH4:'第4章',CH5:'第5章',CH6:'第6章',WRONG:'待掌握'};
 const CHAPTERS = [['1','测试基础'],['2','贯穿 SDLC 的测试'],['3','静态测试'],
                   ['4','测试分析与设计'],['5','测试管理与测试活动'],['6','测试工具']];
 const LETTERS = 'ABCDEFGH';   // 选项字母表（CTFL 有 4 选项和 5 选项两种题）
@@ -95,7 +95,7 @@ const state = {idx:0, sel:new Set(), sources:new Set(['A','B','C','D','EXTRA']),
 /* 选项乱序工具 */
 
 /* ---------- 懒加载脚本（同一文件只请求一次） ---------- */
-const JS_VER = '30';       // 改了 js 或题库数据就 bump，避免浏览器用旧缓存
+const JS_VER = '31';       // 改了 js 或题库数据就 bump，避免浏览器用旧缓存
 function loadScript(src){
   if(src.indexOf('?') < 0) src += '?v=' + JS_VER;
   window.__loaded = window.__loaded || {};

@@ -66,7 +66,7 @@ function paperLabel(key){
   return p ? p.label : key;
 }
 function shortOf(src){
-  if(src === 'WRONG') return '错题本';
+  if(src === 'WRONG') return '未掌握题集';
   if(src === 'EXTRA') return '附加题';
   if(src.indexOf('CH') === 0){
     const c = bankChapters().find(x=>String(x.key) === src.slice(2));
@@ -149,7 +149,7 @@ function grpBlock(title, items, opts){
   });
   return d;
 }
-/* 分组批量勾选：全选时清掉错题本（互斥），清空只清本组 */
+/* 分组批量勾选：全选时清掉未掌握题集（互斥），清空只清本组 */
 function setSources(srcs, on){
   if(on){
     srcs.forEach(s=>state.sources.add(s));
@@ -181,8 +181,8 @@ function renderSourceOptions(){
     })), {ops:true}));
   }
   const wn = wrongPool().length;
-  box.appendChild(grpBlock('错题本（单选，与上面互斥）',
-    [{src:'WRONG', title:'错题本（历史做错、还没做对的题）', n: wn, dis: wn === 0}]));
+  box.appendChild(grpBlock('未掌握题集（单选，与上面互斥）',
+    [{src:'WRONG', title:'未掌握题集（做过但还没掌握的题）', n: wn, dis: wn === 0}]));
   syncSrcChecks();
 }
 function syncSrcChecks(){
@@ -212,7 +212,7 @@ function toggleSource(src){
     if(state.sources.has('WRONG')) state.sources.delete('WRONG');
     else { state.sources.clear(); state.sources.add('WRONG'); }
   }else{
-    state.sources.delete('WRONG');          // 错题本与其它互斥
+    state.sources.delete('WRONG');          // 未掌握题集与其它互斥
     state.sources.has(src) ? state.sources.delete(src) : state.sources.add(src);
   }
   syncSrcChecks(); refreshPool();
@@ -258,8 +258,8 @@ function openCopyModal(){
   }
   if(hasWrong){
     html += `<div class="copyblk">
-      <div class="copyttl">错题本</div>
-      <div class="copymeta">来自你本人历史答错的题目，原始出处同上。</div>
+      <div class="copyttl">未掌握题集</div>
+      <div class="copymeta">来自你本人做过但还没掌握的题目，原始出处同上。</div>
     </div>`;
   }
   html += `<div class="copyblk" style="border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.06)">

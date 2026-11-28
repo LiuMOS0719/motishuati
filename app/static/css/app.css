@@ -309,3 +309,7 @@ table.qtab tr.act th,table.qtab th.act{background:#20262e;color:#8b95a3;font-wei
 .logbox{white-space:pre;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
   font-size:12.5px;line-height:1.95;border:1px solid var(--line);border-radius:10px;background:var(--panel2);
   padding:12px 14px;margin:12px 0;color:#c7d0db}
+
+/* 「字段 | 值」型表（D-38 缺陷报告）：左列窄、内容列自动换行 */
+table.qtab.kvtab td{text-align:left;white-space:normal;vertical-align:top;line-height:1.75}
+table.qtab.kvtab td:first-child{width:96px;color:#8b95a3;white-space:nowrap}
