@@ -7,17 +7,21 @@ import ExplainView from './ExplainView.vue'
 const props = defineProps({
   question: { type: Object, required: true },
   order: { type: Array, default: null },
-  answered: { type: Object, default: null },   // { chosen, correct, answer, explain }
+  answered: { type: Object, default: null },
   index: { type: Number, default: 0 },
   total: { type: Number, default: 0 },
+  weight: { type: Number, default: null },
+  chapterName: { type: String, default: '' },
+  marked: { type: Boolean, default: false },
+  isLast: { type: Boolean, default: false },
 })
-const emit = defineEmits(['submit', 'ai', 'feedback'])
+const emit = defineEmits(['submit', 'prev', 'next', 'feedback', 'mark'])
 
 const picked = ref([])
 const multi = computed(() => (props.question.answer || []).length > 1)
 const submitted = computed(() => Boolean(props.answered && props.answered.answer))
+const weightShow = computed(() => (props.answered?.weight ?? props.weight ?? null))
 
-// 切题时同步已答状态
 watch(() => [props.question.id, props.answered], () => {
   picked.value = props.answered?.chosen ? [...props.answered.chosen] : []
 }, { immediate: true })
@@ -30,31 +34,32 @@ function pick(pos) {
     picked.value = [...s]
   } else {
     picked.value = [pos]
-    emit('submit', [...picked.value])
   }
 }
 
-function submitMulti() {
-  if (!picked.value.length) return
+function confirm() {
+  if (!picked.value.length || submitted.value) return
   emit('submit', [...picked.value])
 }
+
+const myAnswerText = computed(() => {
+  if (!submitted.value) return ''
+  const LET = 'ABCDEFGH'
+  return '你选了 ' + (props.answered.chosen || []).map((p) => LET[p]).join('')
+})
 </script>
 
 <template>
-  <div class="qc card">
-    <div class="head">
-      <span class="qno num">{{ index + 1 }} / {{ total }}</span>
-      <span class="qid">{{ question.id }}</span>
-      <span v-if="question.k_level" class="tag">{{ String(question.k_level).toUpperCase() }}</span>
-      <span v-if="question.lo" class="tag lo">LO {{ question.lo }}</span>
-      <span v-if="multi" class="tag multi">多选</span>
-      <div class="acts">
-        <button class="tar" @click="emit('ai')">问 AI</button>
-        <button class="tar" @click="emit('feedback')">反馈</button>
-      </div>
+  <div class="card">
+    <div class="meta">
+      <span class="k">第 {{ index + 1 }} 题</span>
+      <span class="tag">{{ multi ? '多选' : '单选' }}</span>
+      <span v-if="weightShow !== null" class="tag">权重 {{ weightShow }}</span>
+      <span v-if="chapterName">{{ chapterName }}</span>
+      <span class="fbk" @click="emit('feedback')">题目反馈</span>
     </div>
 
-    <StemView :stem="question.stem" :figure="question.figure" />
+    <StemView class="stem" :stem="question.stem" :figure="question.figure" />
 
     <OptionList
       class="opts"
@@ -67,43 +72,68 @@ function submitMulti() {
       @pick="pick"
     />
 
-    <div v-if="multi && !submitted" class="submit-row">
-      <button class="btn primary" :disabled="!picked.length" @click="submitMulti">
-        提交答案{{ picked.length ? `（已选 ${picked.length}）` : '' }}
-      </button>
+    <div class="sol" :class="{ show: submitted }">
+      <div class="sol-h">
+        <span class="verdict" :class="answered && answered.correct ? 'ok' : 'bad'">
+          {{ answered && answered.correct ? '回答正确' : '回答错误' }}
+        </span>
+        <span class="myans">{{ myAnswerText }}</span>
+      </div>
+      <div class="sol-b">
+        <ExplainView
+          :explain="answered?.explain || question.explain"
+          :options="question.options"
+          :order="order"
+          :answer="answered?.answer || []"
+        />
+      </div>
     </div>
 
-    <div v-if="submitted" class="verdict" :class="answered.correct ? 'ok' : 'bad'">
-      {{ answered.correct ? '答对了' : '答错了' }}
-      <span v-if="answered.weight !== undefined" class="hint num">掌握度 {{ answered.weight }}</span>
+    <div class="acts">
+      <div class="acts-l">
+        <button class="btn prev" :disabled="index === 0" @click="emit('prev')">上一题</button>
+        <span class="mark" :class="{ on: marked }" @click="emit('mark')">
+          {{ marked ? '★ 已标记' : '☆ 标记' }}
+        </span>
+      </div>
+      <div class="acts-r">
+        <button v-if="!submitted" class="btn main" :disabled="!picked.length" @click="confirm">
+          确认答案
+        </button>
+        <button v-else class="btn main" :disabled="isLast" @click="emit('next')">下一题</button>
+      </div>
     </div>
-
-    <ExplainView
-      v-if="submitted"
-      :explain="answered.explain || question.explain"
-      :options="question.options"
-      :order="order"
-      :answer="answered.answer || []"
-    />
   </div>
 </template>
 
 <style scoped>
-.qc{padding:20px 22px 22px}
-.head{display:flex;align-items:center;gap:9px;margin-bottom:14px;flex-wrap:wrap}
-.qno{font-size:13px;color:var(--text);font-weight:600}
-.qid{font-size:12px;color:var(--muted2);font-family:ui-monospace,Menlo,Consolas,monospace}
-.tag{font-size:10.5px;padding:2px 7px;border-radius:6px;background:var(--surface3);color:var(--muted2);
-  border:1px solid var(--border)}
-.tag.multi{background:var(--amber-soft);color:#f3cd8a;border-color:rgba(229,163,60,.3)}
-.tag.lo{color:var(--primary);background:var(--primary-soft);border-color:rgba(76,141,255,.25)}
-.acts{margin-left:auto;display:flex;gap:6px}
-.tar{border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;
-  padding:4px 10px;border-radius:8px;cursor:pointer;font-family:inherit}
-.tar:hover{color:var(--text);border-color:var(--border2);background:var(--surface2)}
-.opts{margin-top:16px}
-.submit-row{margin-top:14px}
-.verdict{margin-top:14px;font-size:13.5px;display:flex;align-items:center;gap:12px}
-.verdict.ok{color:var(--green)}
-.verdict.bad{color:var(--red)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 24px}
+.meta{display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--muted2);margin-bottom:14px;flex-wrap:wrap}
+.meta .k{color:#8fb8ff}
+.meta .tag{padding:2px 7px;border-radius:5px;border:1px solid var(--border);color:var(--muted)}
+.fbk{margin-left:auto;cursor:pointer;color:var(--muted2);font-size:11.5px;border-bottom:1px dashed var(--border2)}
+.fbk:hover{color:var(--primary)}
+.stem{font-size:15.5px;line-height:1.95;color:#e9edf5;letter-spacing:.2px}
+.opts{margin-top:18px}
+.sol{margin-top:16px;border-radius:11px;border:1px solid var(--border);background:#10141b;padding:14px 16px;display:none}
+.sol.show{display:block}
+.sol-h{display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:8px}
+.verdict{font-weight:600}
+.verdict.ok{color:#6fe0ab}
+.verdict.bad{color:#ff8f98}
+.myans{color:#697182;font-size:11.5px}
+.sol-b{font-size:13px;line-height:1.9;color:var(--muted)}
+.acts{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;margin-top:20px}
+.acts-l{display:flex;align-items:center;gap:16px;min-width:0}
+.acts-r{width:96px;flex:none}
+.mark{font-size:12px;color:var(--muted2);cursor:pointer;flex:none}
+.mark.on{color:#f0c684}
+.btn prev{height:34px;padding:0 14px;border-radius:9px;border:1px solid var(--border2);
+  background:var(--surface2);color:var(--text);font-size:13px;cursor:pointer;font-family:inherit}
+.btn prev:disabled{opacity:.4;cursor:not-allowed}
+.btn.main{height:36px;padding:0 18px;border-radius:9px;border:none;color:#fff;font-size:13.5px;
+  font-weight:500;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#3f7cf5,#5b96ff);
+  box-shadow:0 6px 18px rgba(63,124,245,.3)}
+.btn.main:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+@media (max-width:1120px){ .card{padding:16px 16px} }
 </style>

@@ -11,6 +11,7 @@ const auth = useAuthStore()
 const ov = ref(null)
 
 const menus = computed(() => [
+  { name: 'admin-overview', label: '概览', badge: 0 },
   { name: 'admin-users', label: '用户', badge: 0 },
   { name: 'admin-feedback', label: '题目反馈', badge: ov.value?.feedback_open || 0 },
   { name: 'admin-site-feedback', label: '想法记录', badge: ov.value?.notes_open || 0 },

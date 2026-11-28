@@ -34,7 +34,7 @@ async function domains({ res }) {
 
 async function courses({ res }) {
   const rows = await query('SELECT id, domain_id, name, short, subtitle, copyright, copyright_note, sort FROM courses ORDER BY sort, id');
-  const nodes = await query('SELECT id, course_id, parent_id, code, name, level, sort FROM syllabus_nodes ORDER BY course_id, sort, id');
+  const nodes = await query('SELECT id, course_id, parent_id, code, name, short_name, level, sort FROM syllabus_nodes ORDER BY course_id, sort, id');
   const papers = await query('SELECT id, course_id, name, kind, year, source, qcount, sort FROM papers ORDER BY course_id, sort, id');
   ok(res, { rows, nodes, papers });
 }
